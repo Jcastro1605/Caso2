@@ -11,7 +11,6 @@ WITH SCHEMABINDING
 AS
 SELECT groupOwner, name AS groupName, creationDate
 FROM dbo.Solt_UserGroups
-WHERE enabled = 1;
 GO
 
 SELECT * FROM vw_GruposActivos;
@@ -47,7 +46,7 @@ DROP PROCEDURE IF EXISTS ObtainPartnerShare;
 GO
 CREATE PROCEDURE ObtainPartnerShare
 	@featureid INT,
-    @partnerShareAmount DECIMAL(10,2) OUTPUT -- La operación regresa la cantidad de dinero correspondiente al Partner
+    @partnerShareAmount DECIMAL(10,2) OUTPUT -- La operaciÃ³n regresa la cantidad de dinero correspondiente al Partner
 WITH ENCRYPTION
 AS
 BEGIN
@@ -67,7 +66,32 @@ BEGIN
 END
 GO
 
-
 DECLARE @amount DECIMAL(10,2);
 EXEC ObtainPartnerShare 1, @amount;
 SELECT COALESCE(CAST(@amount AS NVARCHAR), 'Not established') AS PartnerShareAmount;
+
+-- ---------------------------
+-- EXECUTE AS
+-- ---------------------------
+
+CREATE ROLE LowTierAdmins;
+CREATE USER LowTierAdminTest WITHOUT login;
+ALTER ROLE LowTierAdmins ADD MEMBER LowTierAdminTest;
+
+DROP PROCEDURE IF EXISTS CheckUsersEmail;
+GO
+CREATE PROCEDURE CheckUsersEmail
+AS
+BEGIN
+	SELECT value, contactInfoTypeid
+    FROM dbo.Solt_ContactInfoPerson
+    WHERE contactInfoTypeid = 1;
+END
+GO
+
+-- EXECUTE AS USER = 'LowTierAdminTest';
+EXEC CheckUsersEmail;
+
+REVERT; -- Regresa al usuario original
+DROP USER if EXISTS LowTierAdminTest;
+DROP ROLE if EXISTS LowTierAdmins;
