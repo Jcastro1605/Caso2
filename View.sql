@@ -1,5 +1,51 @@
 USE [Soltura]
 
+-- -------------------------
+--        TRIGGERS
+-- -------------------------
+DROP TRIGGER if EXISTS trg_LogReedemQR;
+
+GO
+CREATE TRIGGER trg_LogReedemQR -- Trigger para crear un log cuando se utiliza un cupon QR
+ON dbo.Solt_RedemptionCodes
+AFTER UPDATE
+AS
+BEGIN
+    DECLARE @description VARCHAR(100) = 'Código QR redimido';
+	DECLARE @userid INT;
+    DECLARE @computer VARCHAR(50);
+	DECLARE @redemptionCodeid INT;
+	DECLARE @redemptionStatusid TINYINT;
+    DECLARE @username NVARCHAR(100);
+	DECLARE @trace VARCHAR(100) = ' ';
+
+	DECLARE @concatString NVARCHAR(500);
+	DECLARE @checksum VARBINARY(128);
+
+	SELECT 
+        @userid = i.userid, 
+        @redemptionCodeid = i.redemptionCodeid,
+		@redemptionStatusid =i.redemptionStatusid,
+		@username = u.username,
+		@computer = 'PC de ' + @username
+    FROM inserted i
+	INNER JOIN dbo.Solt_Users u ON i.userid = u.userid
+    WHERE redemptionStatusid = 2;
+
+	SET @concatString = CAST(@description AS NVARCHAR) + 
+                        CAST(@computer AS NVARCHAR) + 
+                        CAST(@username AS NVARCHAR) + 
+                        CAST(@trace AS NVARCHAR) + 
+                        CAST(@redemptionCodeid AS NVARCHAR) + 
+                        CAST(@redemptionStatusid AS NVARCHAR) + 
+                        '8' + '1' + '1'; -- LogType = Redeems | LogSource = Database | LogSeverity = Exito
+	SET @checksum = HASHBYTES('SHA2_256', @concatString)
+
+	INSERT INTO dbo.Solt_Log (description, computer, username, trace, referenceid1, value1, checksum, logtypeid, logsourceid, logseverityid)
+    VALUES (@description, @computer, @username, @trace, @redemptionCodeid, CAST(@redemptionStatusid AS VARCHAR), @checksum, 8, 1, 1);
+END;
+GO
+	
 -- ---------------------------
 -- SCHEMABINGING EN VISTAS
 -- ---------------------------
