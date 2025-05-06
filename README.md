@@ -2,14 +2,14 @@
 Entregable para el caso 2 del curso de Bases de Datos I
 
 
-# Mantenimiento de la Seguridad
-Primero crearemos los inicios de sesión para los usuarios.
-![image](https://github.com/user-attachments/assets/1a046298-217c-4e09-9fba-9d02a5506e04)
-Utilizaremos autenticación SQL sin certificado o clave asimétrica.
-![image](https://github.com/user-attachments/assets/ddae6ae4-3835-4d07-8bd5-aae47ed3775b)
-Crearemos 3 inicios de sesión.
-![image](https://github.com/user-attachments/assets/00812610-25c4-41ad-abb2-6d4e7837662c)
-Ahora crearemos 3 usuarios en la base de datos de Soltura para los inicios de sesión que creamos.
+# Mantenimiento de la Seguridad  
+Primero crearemos los inicios de sesión para los usuarios.  
+![image](https://github.com/user-attachments/assets/1a046298-217c-4e09-9fba-9d02a5506e04)  
+Utilizaremos autenticación SQL sin certificado o clave asimétrica.  
+![image](https://github.com/user-attachments/assets/ddae6ae4-3835-4d07-8bd5-aae47ed3775b)  
+Crearemos 3 inicios de sesión.  
+![image](https://github.com/user-attachments/assets/00812610-25c4-41ad-abb2-6d4e7837662c)  
+Ahora crearemos 3 usuarios en la base de datos de Soltura para los inicios de sesión que creamos.  
 ```sql
 USE Soltura
 
@@ -18,21 +18,21 @@ CREATE USER MAntonio FOR LOGIN [Mantonio23]
 CREATE USER JSofia FOR LOGIN [Jsofia44]
 CREATE USER Pasante FOR LOGIN [Pasante]
 ```
-## Mostrar cómo permitir o denegar acceso a la base de datos, del todo poder verla o no, poder conectarse o no
-Al usuario pasante no le permitiremos ver las bases de datos.
+## Mostrar cómo permitir o denegar acceso a la base de datos, del todo poder verla o no, poder conectarse o no  
+Al usuario pasante no le permitiremos ver las bases de datos.  
 ```sql
 USE master
 DENY VIEW ANY DATABASE TO Pasante
 ```
-![image](https://github.com/user-attachments/assets/c1efba40-9276-46b7-8349-9a2f7f94fe3f)
-Como otra alternativa le quitaremos la conexión a Pasante en vez de la visibilidad de la base de datos.
+![image](https://github.com/user-attachments/assets/c1efba40-9276-46b7-8349-9a2f7f94fe3f)  
+Como otra alternativa le quitaremos la conexión a Pasante en vez de la visibilidad de la base de datos.  
 ```sql
 USE Soltura
 DENY CONNECT TO Pasante
 ```
-![image](https://github.com/user-attachments/assets/45a3f7e9-8061-46ad-9776-7fc17afac864)
-## Conceder solo permisos de SELECT sobre una tabla a un usuario específico. Será posible crear roles y que existan roles que si puedan hacer ese select sobre esa tabla y otros Roles que no puedan? Demuestrelo con usuarios y roles pertinentes.
-Vamos a crear un rol para usuarios de soporte técnico, los cuales tendrán acceso a toda la base de datos con la excepción de las tablas referentes al modelo de transacciones. Vamos añadir uno de nuestros usuarios a dicho rol.
+![image](https://github.com/user-attachments/assets/45a3f7e9-8061-46ad-9776-7fc17afac864)  
+## Conceder solo permisos de SELECT sobre una tabla a un usuario específico. Será posible crear roles y que existan roles que si puedan hacer ese select sobre esa tabla y otros Roles que no puedan? Demuestrelo con usuarios y roles pertinentes.  
+Vamos a crear un rol para usuarios de soporte técnico, los cuales tendrán acceso a toda la base de datos con la excepción de las tablas referentes al modelo de transacciones. Vamos añadir uno de nuestros usuarios a dicho rol.  
 ```sql
 USE Soltura
 CREATE ROLE SoporteTecnico
@@ -42,8 +42,8 @@ DENY SELECT ON dbo.Solt_TransactionSubTypes TO SoporteTecnico
 DENY SELECT ON dbo.Solt_TransactionTypes TO SoporteTecnico
 ALTER ROLE SoporteTecnico ADD MEMBER ALaura
 ```
-![image](https://github.com/user-attachments/assets/c1ca6f9e-5843-41aa-8271-3c6bc3233aee)
-Ahora vamos a crear un rol para los analistas de negocios que solo tienen permisos de select en toda la base de datos y añadiremos un usuario a dicho rol.
+![image](https://github.com/user-attachments/assets/c1ca6f9e-5843-41aa-8271-3c6bc3233aee)  
+Ahora vamos a crear un rol para los analistas de negocios que solo tienen permisos de select en toda la base de datos y añadiremos un usuario a dicho rol.  
 ```sql
 USE Soltura
 CREATE ROLE AnalistaNegocios
@@ -52,7 +52,7 @@ GRANT SELECT TO AnalistaNegocios
 ALTER ROLE AnalistaNegocios ADD MEMBER MAntonio
 ```
 -- FALTA RLS
-## Certificado de llave asimétrico y simétrico
+## Certificado de llave asimétrico y simétrico  
 ```sql
 USE Soltura
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'ClaveConfidencial'
@@ -66,8 +66,8 @@ ENCRYPTION BY CERTIFICATE CertGeneral
 ```
 -- FALTA ENCRIPTAR Y SP pero para eso se ocupan los inserts
 
-# Consultas Misceláneas
-## Crear una vista indexada con al menos 4 tablas (ej. usuarios, suscripciones, pagos, servicios). La vista debe ser dinámica, no una vista materializada con datos estáticos. Demuestre que si es dinámica.
+# Consultas Misceláneas  
+## Crear una vista indexada con al menos 4 tablas (ej. usuarios, suscripciones, pagos, servicios). La vista debe ser dinámica, no una vista materializada con datos estáticos. Demuestre que si es dinámica.  
 ```sql
 CREATE VIEW dbo.vw_PartnerFeatures
 WITH SCHEMABINDING
@@ -104,7 +104,7 @@ CREATE UNIQUE CLUSTERED INDEX Index_VW_PartnerFeatures
 ON dbo.vw_PartnerFeatures (partnerid, planFeatureid, methodid);
 GO
 ```
-## Crear un procedimiento almacenado transaccional que realice una operación del sistema, relacionado a subscripciones, pagos, servicios, transacciones o planes, y que dicha operación requiera insertar y/o actualizar al menos 3 tablas.
+## Crear un procedimiento almacenado transaccional que realice una operación del sistema, relacionado a subscripciones, pagos, servicios, transacciones o planes, y que dicha operación requiera insertar y/o actualizar al menos 3 tablas.  
 ```sql
 ----------------------------------------------------------------------
 -- Autores: Julián Castro, Lindsay Marín, Elías Ramírez, Andrés Zuñiga
@@ -176,7 +176,7 @@ RETURN 0
 GO
 ```
 -- FALTA AJUSTAR con los inserts
-## Escribir un SELECT que use CASE para crear una columna calculada que agrupe dinámicamente datos (por ejemplo, agrupar cantidades de usuarios por plan en rangos de monto, no use este ejemplo).
+## Escribir un SELECT que use CASE para crear una columna calculada que agrupe dinámicamente datos (por ejemplo, agrupar cantidades de usuarios por plan en rangos de monto, no use este ejemplo).  
 ```sql
 USE Soltura;
 GO
