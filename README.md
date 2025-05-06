@@ -130,6 +130,15 @@ CREATE UNIQUE CLUSTERED INDEX Index_VW_PartnerFeatures
 ON dbo.vw_PartnerFeatures (partnerid, planFeatureid, methodid);
 GO
 ```
+# Concurrencia 
+## READ UNCOMMITED
+
+## READ COMMITED
+
+## REPEATABLE READ
+
+## SERIALIZATION
+
 ## Crear un procedimiento almacenado transaccional que realice una operación del sistema, relacionado a subscripciones, pagos, servicios, transacciones o planes, y que dicha operación requiera insertar y/o actualizar al menos 3 tablas.  
 ```sql
 ----------------------------------------------------------------------
