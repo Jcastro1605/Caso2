@@ -83,7 +83,7 @@ BEGIN
         RETURN 0;
     END TRY
     BEGIN CATCH
-        IF EXISTS (SELECT 1 FROM sys.openkeys WHERE key_name = 'DataEncryption') -- Esto es por si SP falla después del OPEN
+        IF EXISTS (SELECT 1 FROM sys.openkeys WHERE key_name = 'DataEncryption') -- Esto es por si el SP falla después del OPEN
             CLOSE SYMMETRIC KEY DataEncryption;
         DECLARE @MensajeError NVARCHAR(4000) = ERROR_MESSAGE();
         RAISERROR('Error al desencriptar: %s', 16, 1, @MensajeError);
