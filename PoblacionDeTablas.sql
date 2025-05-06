@@ -1,4 +1,4 @@
-﻿USE Soltura;
+USE Soltura;
 SET NOCOUNT ON;
 
 IF OBJECT_ID('dbo.Solt_Log') IS NOT NULL
@@ -41,7 +41,6 @@ BEGIN CATCH
 END CATCH
 
 BEGIN TRY
-    BEGIN TRAN;
 
     /*-------------------
     1. Limpieza de Tablas
@@ -76,7 +75,6 @@ BEGIN TRY
 	DELETE FROM dbo.Solt_PaymentMethods;      -- hijo de ContactInfoPerson
 	DELETE FROM dbo.Solt_ContactInfoPerson;   -- hijo de Users
 	DELETE FROM dbo.Solt_UserPersons;         -- hijo de Users
-	DELETE FROM dbo.Solt_FeatureMethod;       -- hijo de PlanFeatures
 	DELETE FROM dbo.Solt_PlanLimits;          -- hijo de PlanFeatures + LimitBalance + Schedules
 	DELETE FROM dbo.Solt_FeaturesPerPlan;     -- hijo de PlanFeatures + Subscriptions
 	DELETE FROM dbo.Solt_SubscriptionPrices;  -- hijo de Subscriptions
@@ -122,7 +120,6 @@ BEGIN TRY
     DBCC CHECKIDENT ('dbo.Solt_PlansPerGroup',		RESEED, 0);
     DBCC CHECKIDENT ('dbo.Solt_PlanLimits',			RESEED, 0);
     DBCC CHECKIDENT ('dbo.Solt_LimitBalance',		RESEED, 0);
-    DBCC CHECKIDENT ('dbo.Solt_FeatureMethod',		RESEED, 0);
     DBCC CHECKIDENT ('dbo.Solt_FeaturesPerPlan',	RESEED, 0);
     DBCC CHECKIDENT ('dbo.Solt_SubscriptionPrices', RESEED, 0);
     DBCC CHECKIDENT ('dbo.Solt_PlanFeatures',		RESEED, 0);
@@ -552,11 +549,6 @@ BEGIN TRY
 	FROM dbo.Solt_PlanFeatures pf
 	JOIN @FeaturesData    fd
 	  ON pf.name = fd.featName;
-
-	-- Solt_FeatureMethod
-	INSERT INTO dbo.Solt_FeatureMethod (useMethodid, planFeatureid)
-	SELECT redemption, planFeatureid
-	FROM   @InsertedFeats;
 
 	-- Solt_FeaturesPerPlan
 	INSERT INTO dbo.Solt_FeaturesPerPlan
@@ -1036,7 +1028,8 @@ BEGIN TRY
 	  (1, N'Autenticación', N'userId', NULL, N'IP', NULL),
 	  (2, N'Pago', N'paymentAttemptId', N'transId', N'monto', N'currency'),
 	  (3, N'Subscripción', N'subscriptionId', NULL, N'estadoAnt', N'estadoNuevo'),
-	  (4, N'Sync-Partner', N'partnerId', NULL, N'resultado', NULL);
+	  (4, N'Sync-Partner', N'partnerId', NULL, N'resultado', NULL),
+	  (5, N'Redeems', N'partnerId', NULL, N'resultado', NULL);
 
 	SET IDENTITY_INSERT dbo.Solt_LogTypes ON;
 	INSERT INTO dbo.Solt_LogTypes (logtypeid, name, ref1Desc, ref2Desc, val1Desc, val2Desc)
@@ -1131,12 +1124,9 @@ BEGIN TRY
 	FROM   @LogData;
 	SET IDENTITY_INSERT dbo.Solt_Log OFF;
 
-    COMMIT TRAN;
     PRINT 'Query ejecutado correctamente';
 END TRY
 BEGIN CATCH
-    IF @@TRANCOUNT > 0
-        ROLLBACK;
     DECLARE
         @Msg NVARCHAR(2048) = ERROR_MESSAGE(),
         @Ln INT = ERROR_LINE(),
@@ -1172,7 +1162,6 @@ SELECT * FROM Solt_Subscriptions;
 SELECT * FROM Solt_SubscriptionPrices;
 SELECT * FROM Solt_PlanFeatures;
 SELECT * FROM Solt_FeaturesPerPlan;
-SELECT * FROM Solt_FeatureMethod;
 SELECT * FROM Solt_PlanLimits;
 SELECT * FROM Solt_Schedules;
 SELECT * FROM Solt_LimitBalance;
