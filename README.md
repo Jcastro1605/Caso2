@@ -1737,6 +1737,68 @@ Vamos a darle acceso al rol de soporte que no tenía permisos de nada, al SP de 
 ```sql
 GRANT EXECUTE ON dbo.ConvertirMonedaTransacciones TO SoporteTecnico;
 ```
+## Habrá alguna forma de implementar RLS, row level security
+```sql
+USE Soltura;
+GO
+
+IF EXISTS (
+    SELECT 1
+      FROM sys.security_policies
+     WHERE name = N'PartnerDealSecurity'
+)
+BEGIN
+    ALTER SECURITY POLICY PartnerDealSecurity WITH (STATE = OFF);
+    DROP SECURITY POLICY PartnerDealSecurity;
+END
+GO
+
+IF OBJECT_ID(N'dbo.fn_PartnerDealFilter', 'IF') IS NOT NULL
+    DROP FUNCTION dbo.fn_PartnerDealFilter;
+GO
+
+  -- Función de filtro
+
+CREATE FUNCTION dbo.fn_PartnerDealFilter(@partnerId INT)
+RETURNS TABLE
+WITH SCHEMABINDING
+AS
+  RETURN
+    SELECT 1 AS allowed
+     WHERE @partnerId = CAST(SESSION_CONTEXT(N'AppPartnerId') AS INT);
+GO
+
+
+  -- Política RLS
+CREATE SECURITY POLICY PartnerDealSecurity
+  ADD FILTER PREDICATE dbo.fn_PartnerDealFilter(partnerId)
+    ON dbo.Solt_PartnerDeals
+  WITH (STATE = ON);
+GO
+
+-- partnerId = 3
+EXEC sp_set_session_context @key = N'AppPartnerId', @value = 3;
+PRINT 'Contexto = 3';
+SELECT * 
+  FROM dbo.Solt_PartnerDeals
+ ORDER BY partnerDealId;
+
+-- partnerId = 5
+EXEC sp_set_session_context @key = N'AppPartnerId', @value = 5;
+PRINT 'Contexto = 5';
+SELECT * 
+  FROM dbo.Solt_PartnerDeals
+ ORDER BY partnerDealId;
+
+-- Borrar Contexto
+EXEC sp_set_session_context @key = N'AppPartnerId', @value = NULL;
+PRINT 'Contexto = NULL';
+SELECT * 
+  FROM dbo.Solt_PartnerDeals
+ ORDER BY partnerDealId;
+GO
+```
+
 -- FALTA RLS
 ## Certificado de llave asimétrico y simétrico  
 ```sql
