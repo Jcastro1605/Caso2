@@ -1797,7 +1797,7 @@ ELSE
     PRINT 'Ocurrió un error al desencriptar';
 ```
 # Concurrencia 
-## READ UNCOMMITTED
+### READ UNCOMMITTED
 READ UNCOMMITED es un nivel de isolación que NO bloquea las otras tablas. Este es útil para realizar consultas que no dependan de la precisión de los datos en un momento dado. Otra ventaja de este es la velocidad inherente de no tener que depender de otras tablas. Por este motivo, se ha optado por realizar un reporte general histórico de la tabla de Logs. Ver la información de los Logs no debe restringir el uso de otras tablas.
 ```sql
 GO
@@ -1863,7 +1863,7 @@ GO
 
 EXEC RankingPorCanjeos;
 ```
-## READ COMMITTED
+### READ COMMITTED
 READ COMMITED es un nivel de isolación que solo mira datos ya confirmados por COMMIT. Este puede cambiar los valores que utiliza si a mitad de la transacción hay COMMITs. Para este, se prefirió hacer un procedimiento que evalúa la tasa de cambio en un momento dado. La idea de este SP es sumar todas las transacciones y convertir a la moneda destino. Al ser READ COMMITTED, modificaciones en las tasas de cambio en medio de la transacción se verán reflejados en la suma total de dinero. 
 ```sql
 GO
@@ -1944,7 +1944,7 @@ GO
 
 EXEC ConvertirMonedaTransacciones @username = 'ElenaSilR45', @destinationCurrencySymb = '$';
 ```
-## REPEATABLE READ
+### REPEATABLE READ
 Este atributo para transacciones limita el uso de otras filas de tablas hasta que el proceso termine. Es decir, los valores obtenidos de otras tablas no podrán cambiar en medio de la transacción. Se aprovechan las propiedades de REPEATABLE READ para garantizar que ningún otro proceso pueda actualizar los datos de la suscripción mientras algún usuario la esté adquiriendo.
 ```sql
 GO
@@ -2031,7 +2031,7 @@ GO
 
 EXEC InsertarFullModernFamilyPlan @username = 'ElenaSilR45', @scheduleid = 2;
 ```
-## SERIALIZABLE
+### SERIALIZABLE
 SERIALIZABLE es un nivel de isolación sumamente estricto. Este bloquea tablas enteras hasta que termine todo su proceso. No obstante, es un método que ralentiza mucho los procesos si se usa de forma incorrecta. Por eso, hemos optado por usarlo en una transacción poco frecuente como la de actualizar los precios de un plan de suscripción. Así, si una persona está intentando comprar o eliminar una suscripción, se bloquea para impedir registros con precios obsoletos
 ```sql
 GO
@@ -2100,6 +2100,15 @@ GO
 
 EXEC CambiarPrecioSuscripcion @suscriptionName = 'Full Modern Family', @newPrice = 40.0;
 ```
+
+### Transacción de volumen
+Se considera que la transacción de volumen en la plataforma de Soltura es el Canjeo. Al ser una aplicación centrada en los beneficios que brindan distintos proveedores, los canjes son la actividad principal de todo usuario. Estos pueden darse varias veces al día. Por este motivo, es vital medir su nivel de eficiencia. Esta transacción es un pilar central en el sistema de Soltura.
+#### Calcular TPS
+Para calcular el número de transacciones que se pueden realizar por segundo, es necesario hacer uso de herramientas externas. En este caso, la herramienta SQLQueryStress resulta conveniente para abrir una serie de threads y ejecutar la transacción de canjeo un número determinado de veces. 
+![image](https://github.com/user-attachments/assets/03c12876-a0b0-4ad1-a864-7953afeeddfd)
+SQLQueryStress muestra varias estadísticas. Entre ellas la cantidad de segundos que tarda un proceso en terminarse a nivel de cliente. Se trabajará con una saturación máxima en el CPU de un 70%. Calcular las transacciones por segundo de canjes en esta aplicación es vital para entender el nivel de eficiencia que maneja Soltura.
+#### Triplicar el valor
+Si queremos triplicar el valor de las transacciones por segundo, es vital distribuir la carga en varios threads. Si se conectan más hilos, se repartirá la carga entre diferentes puntos de acceso. Obteniendo así una menor carga en una sola línea de consultas y transacciones más rápidas sin necesidad de modificar hardware ni queries.
 
 # Consultas Misceláneas  
 ## Crear una vista indexada con al menos 4 tablas (ej. usuarios, suscripciones, pagos, servicios). La vista debe ser dinámica, no una vista materializada con datos estáticos. Demuestre que si es dinámica.  
