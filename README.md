@@ -554,13 +554,18 @@ ELSE
     PRINT 'Ocurrió un error al desencriptar';
 ```
 # Concurrencia 
-## READ UNCOMMITED
+## READ UNCOMMITTED
+READ UNCOMMITED es un nivel de isolación que NO bloquea las otras tablas. Este es útil para realizar consultas que no dependan de la precisión de los datos en un momento dado. Otra ventaja de este es la velocidad inherente de no tener que depender de otras tablas. Por este motivo, se ha optado por realizar un reporte general histórico de la tabla de Logs. Ver la información de los Logs no debe restringir el uso de otras tablas.
 
-## READ COMMITED
+## READ COMMITTED
+READ COMMITED es un nivel de isolación que solo mira datos ya confirmados por COMMIT. Este puede cambiar los valores que utiliza si a mitad de la transacción hay COMMITs. Para este, se prefirió hacer un procedimiento que evalúa la tasa de cambio en un momento dado. La idea de este SP es sumar todas las transacciones y convertir a la moneda destino. Al ser READ COMMITTED, modificaciones en las tasas de cambio en medio de la transacción se verán reflejados en la suma total de dinero. 
 
 ## REPEATABLE READ
+Este atributo para transacciones limita el uso de otras filas de tablas hasta que el proceso termine. Es decir, los valores obtenidos de otras tablas no podrán cambiar en medio de la transacción. Se aprovechan las propiedades de REPEATABLE READ para garantizar que ningún otro proceso pueda actualizar los datos de la suscripción mientras algún usuario la esté adquiriendo.
 
-## SERIALIZATION
+## SERIALIZABLE
+SERIALIZABLE es un nivel de isolación sumamente estricto. Este bloquea tablas enteras hasta que termine todo su proceso. No obstante, es un método que ralentiza mucho los procesos si se usa de forma incorrecta. Por eso, hemos optado por usarlo en una transacción poco frecuente como la de actualizar los precios de un plan de suscripción. Así, si una persona está intentando comprar o eliminar una suscripción, se bloquea para impedir registros con precios obsoletos
+
 
 # Consultas Misceláneas  
 ## Crear una vista indexada con al menos 4 tablas (ej. usuarios, suscripciones, pagos, servicios). La vista debe ser dinámica, no una vista materializada con datos estáticos. Demuestre que si es dinámica.  
