@@ -30,10 +30,9 @@ BEGIN
         @userid = i.userid, 
         @redemptionCodeid = i.redemptionCodeid,
 		@redemptionStatusid =i.redemptionStatusid,
-		@username = u.username,
+		@username = u.username
     FROM inserted i
 	INNER JOIN dbo.Solt_Users u ON i.userid = u.userid
-    WHERE redemptionStatusid = 2;
 
 	SET @computer = 'PC de ' + @username;
 	SET @concatString = CAST(@description AS NVARCHAR) + 
