@@ -68,9 +68,89 @@ Se mostrará un ejemplo de un documento como "plantilla" y se especificará cuan
 }
 ```
 #### Collections: Solt_FeatureCategory
--- FALTA  
+```json
+{
+  "_id": {
+    "$oid": "681adcda74f237618c1e75c2"
+  },
+  "name": "Fitness & Wellness"
+}
+```  
 #### Collections: Solt_Features
--- FALTA  
+```json
+{
+  "_id": {
+    "$oid": "681ae1ff74f237618c1e75c5"
+  },
+  "id": "01",
+  "name": "Pet Grooming Premium",
+  "category": "Pet Care",
+  "description": "Servicios profesionales de aseo y cuidado para mascotas",
+  "image": {
+    "banner": "https://soltura-cloud-imgs/services/pet-grooming/banner-v3.jpg",
+    "thumbnail": "https://soltura-cloud-imgs/services/pet-grooming/thumb.jpg",
+    "altText": "Perro siendo aseado por profesional"
+  },
+  "features": [
+    {
+      "title": "Baño Completo",
+      "description": "Incluye shampoo especializado, secado profesional y cepillado",
+      "icon": "🛁"
+    },
+    {
+      "title": "Corte de Pelo",
+      "description": "Estilizado según raza o preferencia del dueño",
+      "icon": "✂️"
+    },
+    {
+      "title": "Atención Especializada",
+      "description": "Personal capacitado en manejo animal",
+      "icon": "🐾"
+    }
+  ],
+  "providers": [
+    {
+      "id": "pg-cr-001",
+      "name": "Pet Grooming CR Premium",
+      "type": "Premium Partner",
+      "logo": "https://soltura-cloud-imgs/providers/pet-grooming-cr/logo-v2.png",
+      "description": "Especialistas en cuidado canino y felino con 10 años de experiencia",
+      "avgrating": 4.8,
+      "services": [
+        "Full Grooming",
+        "Spa Treatment",
+        "Flea Bath"
+      ],
+      "locations": [
+        {
+          "addresses": [
+            "San José, Curridabat"
+          ]
+        }
+      ],
+      "contact": [
+        {
+          "type": "Phone",
+          "value": "8768-8918"
+        },
+        {
+          "type": "website",
+          "value": "https://www.groomingPetCR.cr/"
+        }
+      ],
+      "businessHours": {
+        "weekdays": "7:00am - 6:00pm",
+        "weekends": "8:00am - 4:00pm"
+      }
+    }
+  ],
+  "metadata": {
+    "createdAt": "2023-05-15T08:30:00Z",
+    "updatedAt": "2023-11-20T14:25:00Z",
+    "version": "2.1"
+  }
+}
+```
 #### Collections: Solt_HomeBanners
 ```json
 {
