@@ -95,17 +95,17 @@ Se mostrará un ejemplo de un documento como "plantilla" y se especificará cuan
     {
       "title": "Baño Completo",
       "description": "Incluye shampoo especializado, secado profesional y cepillado",
-      "icon": "🛁"
+      "icon": "https://soltura-cloud-imgs/iconBath.png"
     },
     {
       "title": "Corte de Pelo",
       "description": "Estilizado según raza o preferencia del dueño",
-      "icon": "✂️"
+      "icon": "https://soltura-cloud-imgs/iconScissor.png"
     },
     {
       "title": "Atención Especializada",
       "description": "Personal capacitado en manejo animal",
-      "icon": "🐾"
+      "icon": "https://soltura-cloud-imgs/iconPaws.png"
     }
   ],
   "providers": [
@@ -479,10 +479,10 @@ Vamos a crear un rol para usuarios de soporte técnico, los cuales tendrán acce
 ```sql
 USE Soltura
 CREATE ROLE SoporteTecnico
-DENY SELECT ON dbo.Solt_Transactions TO SoporteTecnico
-DENY SELECT ON dbo.Solt_PaymentAttempts TO SoporteTecnico
-DENY SELECT ON dbo.Solt_TransactionSubTypes TO SoporteTecnico
-DENY SELECT ON dbo.Solt_TransactionTypes TO SoporteTecnico
+DENY SELECT, INSERT, UPDATE, DELETE ON dbo.Solt_Transactions TO SoporteTecnico;
+DENY SELECT, INSERT, UPDATE, DELETE ON dbo.Solt_PaymentAttempts TO SoporteTecnico;
+DENY SELECT, INSERT, UPDATE, DELETE ON dbo.Solt_TransactionSubTypes TO SoporteTecnico;
+DENY SELECT, INSERT, UPDATE, DELETE ON dbo.Solt_TransactionTypes TO SoporteTecnico;
 ALTER ROLE SoporteTecnico ADD MEMBER ALaura
 ```
 ![image](https://github.com/user-attachments/assets/c1ca6f9e-5843-41aa-8271-3c6bc3233aee)  
@@ -493,6 +493,11 @@ CREATE ROLE AnalistaNegocios
 DENY INSERT, UPDATE, DELETE TO AnalistaNegocios
 GRANT SELECT TO AnalistaNegocios
 ALTER ROLE AnalistaNegocios ADD MEMBER MAntonio
+```
+## Permitir ejecución de ciertos SPs y denegar acceso directo a las tablas que ese SP utiliza, será que aunque tengo las tablas restringidas, puedo ejecutar el SP?
+Vamos a darle acceso al rol de soporte que no tenía permisos de nada, al SP de ConvertirMoneda.
+```sql
+GRANT EXECUTE ON dbo.ConvertirMonedaTransacciones TO SoporteTecnico;
 ```
 -- FALTA RLS
 ## Certificado de llave asimétrico y simétrico  
