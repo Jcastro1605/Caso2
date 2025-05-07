@@ -1,7 +1,9 @@
-# Caso2
+# Caso 2
 Entregable para el caso 2 del curso de Bases de Datos I
 
 # Proceda entonces en conjunto con sus colegas consultores de empresa a realizar el diseño de ambas bases de datos.
+
+![image](https://github.com/Jcastro1605/Caso2/blob/cursores/Dise%C3%B1oSolturaSQLServer.png)
 
 ## Base de datos de MongoDB (para la página web de Soltura)
 Las presentaciones de la base de datos se mostraran en MongoDB Compass para mejor presentación y legibilidad.  
