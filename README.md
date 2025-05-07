@@ -64,9 +64,8 @@ CREATE SYMMETRIC KEY DataEncryption
 WITH ALGORITHM = AES_256
 ENCRYPTION BY CERTIFICATE CertGeneral
 ```
--- FALTA ENCRIPTAR Y SP pero para eso se ocupan los inserts
-
 ## Crear un SP que descifre los datos protegidos usando las llaves anteriores.
+Aqui se presenta el Stored Procedure para desencriptar un dato encriptado.  
 ```sql
 CREATE PROCEDURE dbo.DesencriptarDatos
     @DatosEncriptados VARBINARY(MAX),
@@ -91,7 +90,26 @@ BEGIN
     END CATCH
 END;
 ```
+Un ejemplo, desencriptando un checksum de la tabla de logs.  
+```sql
+DECLARE @checksum VARBINARY(MAX);
+DECLARE @resultado NVARCHAR(MAX);
+DECLARE @retorno INT;
 
+-- 1. Obtener el valor encriptado
+SELECT @checksum = checksum FROM Solt_Log WHERE logid = 1;
+
+-- 2. Ejecutar el procedimiento
+EXEC @retorno = dbo.DesencriptarDatos 
+    @DatosEncriptados = @checksum,
+    @DatosDesencriptados = @resultado OUTPUT;
+
+-- 3. Verificar el resultado
+IF @retorno = 0
+    SELECT @resultado AS 'Datos Desencriptados';
+ELSE
+    PRINT 'Ocurrió un error al desencriptar';
+```
 # Consultas Misceláneas  
 ## Crear una vista indexada con al menos 4 tablas (ej. usuarios, suscripciones, pagos, servicios). La vista debe ser dinámica, no una vista materializada con datos estáticos. Demuestre que si es dinámica.  
 ```sql
