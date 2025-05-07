@@ -637,6 +637,25 @@ GROUP BY CASE
         WHEN creationDate < '2025-01-01' THEN 'Grupos Antiguos'
     END;
 ```
+## Escribir un SELECT que use CASE para crear una columna calculada que agrupe dinámicamente datos (por ejemplo, agrupar cantidades de usuarios por plan en rangos de monto, no use este ejemplo).  
+```sql
+USE Soltura;
+GO
+
+SELECT 
+    CASE 
+        WHEN creationDate >= '2025-05-01' THEN 'Grupos Recientes'
+        WHEN creationDate >= '2025-01-01' AND creationDate < '2025-05-01' THEN 'Grupos 2025'
+        WHEN creationDate < '2025-01-01' THEN 'Grupos Antiguos'
+    END AS TipoGrupo,
+    COUNT(DISTINCT groupOwner) AS CantidadGrupos
+FROM Solt_UserGroups
+GROUP BY CASE 
+        WHEN creationDate >= '2025-05-01' THEN 'Grupos Recientes'
+        WHEN creationDate >= '2025-01-01' AND creationDate < '2025-05-01' THEN 'Grupos 2025'
+        WHEN creationDate < '2025-01-01' THEN 'Grupos Antiguos'
+    END;
+```
 ## Será posible que haciendo una consulta SQL en esta base de datos se pueda obtener un JSON para ser consumido por alguna de las pantallas de la aplicación que tenga que ver con los planes, subscripciones, servicios o pagos. Justifique cuál pantalla podría requerir esta consulta.
 ```sql
 SELECT F.name, P.name FROM Solt_PlanFeatures F
@@ -646,6 +665,333 @@ INNER JOIN Solt_Partners P ON P.partnerid = PD.partnerid
 FOR JSON AUTO
 ```
 Esta consulta puede ser necesaria cuando se necesite mostrar un catálogo en alguna interfaz gráfica y se necesiten ver los distintos proveedores que ofrecen un determinado servicio.  
+
+## Crear una consulta con al menos 3 JOINs que analice información donde podría ser importante obtener un SET DIFFERENCE y un INTERSECTION
+
+Para esta consulta, vamos a analizar la información de suscripciones de usuarios, los planes a los que se han suscrito, y los servicios que ofrece cada plan. El objetivo es encontrar:
+
+    INTERSECTION: Qué servicios están incluidos en todos los planes de suscripción.
+    SET DIFFERENCE: Qué servicios ofrece un plan específico que no están incluidos en otro plan.
+
+Tablas Involucradas:
+
+    Solt_Subscriptions: Almacena información sobre las suscripciones de los usuarios.
+    Solt_FeaturesPerPlan: Almacena la relación entre planes y caracteristicas (servicios).
+    Solt_PlanFeatures: Almacena la información de los servicios o caracteristicas.
+
+```sql
+USE Soltura;
+
+-- 1. INTERSECTION: Servicios comunes a todos los planes
+SELECT pf.name AS NombreServicio
+FROM Solt_PlanFeatures pf
+WHERE pf.planFeatureId IN (
+    SELECT featureid
+    FROM Solt_FeaturesPerPlan
+    WHERE planid IN (SELECT subscriptionid FROM Solt_Subscriptions) --todos los subscriptionid son planid
+    GROUP BY featureid
+    HAVING COUNT(DISTINCT planid) = (SELECT COUNT(DISTINCT subscriptionid) FROM Solt_Subscriptions) --todos los subscriptionid son planid
+);
+
+-- 2. SET DIFFERENCE: Servicios del Plan 1 que no están en el Plan 2
+-- Asumiendo que tienes PlanID 1 y 2. Ajusta los IDs según tu caso.
+SELECT pf.name AS NombreServicio
+FROM Solt_PlanFeatures pf
+WHERE pf.planFeatureId IN (
+    SELECT featureid
+    FROM Solt_FeaturesPerPlan
+    WHERE planid = 1  -- Plan 1
+    EXCEPT
+    SELECT featureid
+    FROM Solt_FeaturesPerPlan
+    WHERE planid = 2  -- Plan 2
+);
+```
+## Crear un procedimiento almacenado transaccional que llame a otro SP transaccional, el cual a su vez llame a otro SP transaccional.
+
+```sql
+USE Soltura;
+GO
+
+-- Procedimiento Almacenado Nivel 1
+CREATE PROCEDURE [dbo].[SP_Nivel1]
+AS
+BEGIN
+    SET XACT_ABORT ON;  -- Importante para transacciones anidadas
+    BEGIN TRANSACTION;
+
+    -- Modificar tablas 1 y 2
+    UPDATE Solt_Users SET firstName = 'Nivel1' WHERE userid = 1;
+    UPDATE Solt_UserPersons SET name = 'Nivel1' WHERE userid = 1;
+
+    -- Llamar al Procedimiento Almacenado de Nivel 2
+    EXEC [dbo].[SP_Nivel2];
+
+    --COMMIT TRANSACTION; -- No hacer commit aqui para ver el rollback
+    SELECT @@TRANCOUNT;
+    RETURN 0;
+END;
+GO
+
+-- Procedimiento Almacenado Nivel 2
+CREATE PROCEDURE [dbo].[SP_Nivel2]
+AS
+BEGIN
+    SET XACT_ABORT ON;
+    --BEGIN TRANSACTION;  -- No es necesario iniciar otra transacción explícita
+
+    -- Modificar tablas 3 y 4
+    UPDATE Solt_Subscriptions SET subname = 'Nivel2' WHERE subscriptionid = 1;
+    UPDATE Solt_SubscriptionPrices SET price = 22.22 WHERE subscriptionid = 1;
+
+    -- Llamar al Procedimiento Almacenado de Nivel 3
+    EXEC [dbo].[SP_Nivel3];
+
+    --COMMIT TRANSACTION; -- No hacer commit aqui para ver el rollback
+    SELECT @@TRANCOUNT;
+    RETURN 0;
+END;
+GO
+
+-- Procedimiento Almacenado Nivel 3
+CREATE PROCEDURE [dbo].[SP_Nivel3]
+AS
+BEGIN
+    SET XACT_ABORT ON;
+    --BEGIN TRANSACTION; -- No es necesario iniciar transacción aquí
+
+    -- Modificar tablas 5 y 6
+    UPDATE Solt_PlanFeatures SET name = 'Nivel3' WHERE planFeatureId = 1;
+    UPDATE Solt_FeaturesPerPlan SET value = 'Nivel3' WHERE planid = 1 AND featureid = 1;
+
+    -- Simular un error para rollback
+    --RAISERROR('Error simulado en Nivel 3', 16, 1);  -- Descomentar para probar el rollback
+
+    --COMMIT TRANSACTION;
+    SELECT @@TRANCOUNT;
+    RETURN 0;
+END;
+GO
+
+-- Ejemplo de COMMIT exitoso
+EXEC [dbo].[SP_Nivel1];
+SELECT * FROM Solt_Users WHERE userid = 1;
+SELECT * FROM Solt_UserPersons WHERE userid = 1;
+SELECT * FROM Solt_Subscriptions WHERE subscriptionid = 1;
+SELECT * FROM Solt_SubscriptionPrices WHERE subscriptionid = 1;
+SELECT * FROM Solt_PlanFeatures WHERE planFeatureId = 1;
+SELECT * FROM Solt_FeaturesPerPlan WHERE planid = 1 AND featureid = 1;
+GO
+
+-- Ejemplo de ROLLBACK (descomentar la línea RAISERROR en SP_Nivel3)
+EXEC [dbo].[SP_Nivel1];
+SELECT * FROM Solt_Users WHERE userid = 1;
+SELECT * FROM Solt_UserPersons WHERE userid = 1;
+SELECT * FROM Solt_Subscriptions WHERE subscriptionid = 1;
+SELECT * FROM Solt_SubscriptionPrices WHERE subscriptionid = 1;
+SELECT * FROM Solt_PlanFeatures WHERE planFeatureId = 1;
+SELECT * FROM Solt_FeaturesPerPlan WHERE planid = 1 AND featureid = 1;
+GO
+
+DROP PROCEDURE [dbo].[SP_Nivel1];
+DROP PROCEDURE [dbo].[SP_Nivel2];
+DROP PROCEDURE [dbo].[SP_Nivel3];
+GO
+```
+
+## Será posible que haciendo una consulta SQL en esta base de datos se pueda obtener un JSON para ser consumido por alguna de las pantallas de la aplicación que tenga que ver con los planes, subscripciones, servicios o pagos. Justifique cuál pantalla podría requerir esta consulta.
+```sql
+SELECT F.name, P.name FROM Solt_PlanFeatures F
+INNER JOIN Solt_FeaturePerDeal FPD ON F.planFeatureid = FPD.planFeatureid
+INNER JOIN Solt_PartnerDeals PD ON PD.partnerDealid = FPD.partnerDealid
+INNER JOIN Solt_Partners P ON P.partnerid = PD.partnerid
+FOR JSON AUTO
+```
+Esta consulta puede ser necesaria cuando se necesite mostrar un catálogo en alguna interfaz gráfica y se necesiten ver los distintos proveedores que ofrecen un determinado servicio.  
+
+## Podrá su base de datos soportar un SP transaccional que actualice los contratos de servicio de un proveedor, el proveedor podría ya existir o ser nuevo, si es nuevo, solo se inserta.
+
+```sql
+USE Soltura;
+GO
+
+-- Tipo de Tabla para las condiciones del contrato
+CREATE TYPE [dbo].[ContractConditionsTableType] AS TABLE
+(
+    [itemId] INT,
+    [condition] VARCHAR(200)
+);
+GO
+
+-- Procedimiento Almacenado para actualizar/insertar contratos de proveedor
+CREATE PROCEDURE [dbo].[SP_UpdateProviderContract]
+(
+    @providerId INT,
+    @providerName VARCHAR(200),
+    @contractConditions [dbo].[ContractConditionsTableType] READONLY
+)
+AS
+BEGIN
+    SET XACT_ABORT ON;
+    BEGIN TRANSACTION;
+
+    -- Declarar variable para el ID del proveedor
+    DECLARE @existingProviderId INT;
+
+    -- Verificar si el proveedor existe
+    SELECT @existingProviderId = providerid
+    FROM Solt_Providers
+    WHERE providerid = @providerId;
+
+    -- Si el proveedor no existe, insertarlo
+    IF @existingProviderId IS NULL
+    BEGIN
+        INSERT INTO Solt_Providers (name)
+        VALUES (@providerName);
+        SET @providerId = SCOPE_IDENTITY(); -- Obtener el nuevo ID del proveedor
+    END
+
+    -- Actualizar o insertar condiciones del contrato
+    MERGE INTO Solt_ProviderContracts AS target
+    USING @contractConditions AS source
+        ON target.providerid = @providerId AND target.itemid = source.itemId
+    WHEN MATCHED THEN
+        UPDATE SET target.condition = source.condition
+    WHEN NOT MATCHED THEN
+        INSERT (providerid, itemid, condition)
+        VALUES (@providerId, source.itemId, source.condition)
+    WHEN NOT MATCHED BY SOURCE THEN
+        DELETE;
+
+    COMMIT TRANSACTION;
+END;
+GO
+
+-- Ejemplo de uso
+-- Declarar e insertar datos en el TVP
+DECLARE @ContractConditions [dbo].[ContractConditionsTableType];
+INSERT INTO @ContractConditions (itemId, condition)
+VALUES
+    (1, 'Condición A - Actualizada'),
+    (2, 'Condición B'),
+    (3, 'Condición C - Nueva');
+
+-- Ejecutar el procedimiento almacenado para un proveedor existente
+EXEC [dbo].[SP_UpdateProviderContract] 1, 'Proveedor Existente', @ContractConditions;
+
+-- Ejecutar el procedimiento almacenado para un nuevo proveedor
+EXEC [dbo].[SP_UpdateProviderContract] 2, 'Nuevo Proveedor', @ContractConditions;
+
+SELECT * FROM Solt_Providers;
+SELECT * FROM Solt_ProviderContracts;
+
+DROP PROCEDURE [dbo].[SP_UpdateProviderContract];
+DROP TYPE [dbo].[ContractConditionsTableType];
+GO
+```
+
+## Crear un SELECT que genere un archivo CSV de datos basado en un JOIN entre dos tablas
+
+```sql
+USE Soltura;
+GO
+
+-- Generar archivo CSV (simulado)
+SELECT
+    u.userid AS UserId,
+    u.firstName AS FirstName,
+    u.lastName AS LastName,
+    a.line1 AS AddressLine1,
+    a.line2 AS AddressLine2,
+    a.zipcode AS ZipCode
+FROM Solt_Users u
+JOIN Solt_UserAdresses ua ON u.userid = ua.userid
+JOIN Solt_Adresses a ON ua.adressid = a.adressid
+WHERE u.userid < 5  -- Limitar la cantidad de datos para el ejemplo
+ORDER BY u.userid
+--En SQL Server, la generación directa de archivos CSV es limitada.  Esta consulta genera los datos.
+--Para guardar esto en un archivo, se puede usar la utilidad bcp de SQL Server, o bien
+-- SSIS (SQL Server Integration Services).
+-- Ejemplo usando bcp (desde la línea de comandos de Windows):
+-- bcp "SELECT ... FROM Soltura.dbo.Solt_Users..." queryout C:\data\usuarios.csv -c -t, -Slocalhost -Usa -Ppassword
+```
+
+## Configurar una tabla de bitácora en otro servidor SQL Server accesible vía Linked Servers con impersonación segura desde los SP del sistema.
+```sql
+USE Soltura;
+GO
+
+-- Paso 1: Configurar el Linked Server (Ejecutar en el servidor principal)
+-- Reemplazar <NombreServidorRemoto> con el nombre real del servidor remoto.
+EXEC sp_addlinkedserver
+    @server = N'NombreServidorRemoto',
+    @srvproduct = N'SQL Server';
+GO
+
+-- Paso 2: Configurar la seguridad del Linked Server (Ejecutar en el servidor principal)
+--  Usar la cuenta de servicio de SQL Server para la suplantación (o una cuenta específica con los permisos requeridos).
+EXEC sp_addlinkedsrvlogin
+    @rmtsrvname = N'<NombreServidorRemoto>',
+    @useself = N'True';  -- Usa la suplantación
+GO
+
+-- Paso 3: Crear la tabla de bitácora en el servidor remoto (Ejecutar en el servidor remoto)
+USE [DBRemoto]; -- Reemplazar YourRemoteDatabase
+GO
+CREATE TABLE [dbo].[Solt_Log](
+    [logid] [int] IDENTITY(1,1) NOT NULL,
+    [eventDate] [datetime] NOT NULL,
+    [spName] [varchar](128) NOT NULL,
+    [message] [varchar](max) NULL,
+    [userid] [int] NULL,
+    [severity] [int] NOT NULL,
+ CONSTRAINT [PK_Solt_Log] PRIMARY KEY CLUSTERED
+(
+    [logid] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+
+-- Paso 4: Crear el procedimiento almacenado genérico (Ejecutar en el servidor principal)
+CREATE PROCEDURE [dbo].[SP_LogMessage]
+(
+    @spName VARCHAR(128),
+    @message VARCHAR(MAX),
+    @userid INT = NULL,
+    @severity INT = 0
+)
+AS
+BEGIN
+    -- Insertar en la tabla de bitácora en el servidor remoto.
+    INSERT INTO [NombreServidorRemoto].[DBRemoto].[dbo].[Solt_Log] (eventDate, spName, message, userid, severity)
+    VALUES (GETDATE(), @spName, @message, @userid, @severity);
+END;
+GO
+
+-- Paso 5:  Ejemplo de uso del SP genérico desde otro SP (Ejecutar en el servidor principal)
+CREATE PROCEDURE [dbo].[SP_SomeOtherSP]
+AS
+BEGIN
+    -- Hacer algo...
+    -- Llamar al SP de bitácora para registrar un mensaje.
+    EXEC [dbo].[SP_LogMessage]
+        @spName = 'SP_SomeOtherSP',
+        @message = 'Este es un mensaje de bitácora desde SP_SomeOtherSP.',
+        @userid = 123,  -- Reemplazar con el ID de usuario apropiado
+        @severity = 1;
+
+    -- Más lógica del SP...
+END;
+GO
+
+DROP PROCEDURE [dbo].[SP_SomeOtherSP];
+DROP PROCEDURE [dbo].[SP_LogMessage];
+-- El linked server se debe eliminar manualmente en SSMS
+```
+
+
+
+
 
 
 
