@@ -196,7 +196,33 @@ Se mostrará un ejemplo de un documento como "plantilla" y se especificará cuan
 }
 ```
 #### Collections: Solt_Packages
--- FALTA  
+```json
+{
+  "packageid": "01",
+  "name": "Nómada Digital",
+  "image": "https://soltura-cloud-imgs/sbanner-v3.jpg",
+  "features": [{
+      "id": "01",
+    	"name": "Pet Grooming Premium",
+   	 	"category": "Pet Care",
+    	"description": "Servicios profesionales de aseo y cuidado para mascotas"
+    },
+    {
+      "id": "02",
+      "name": "Plán Móvil",
+      "category": "Digital Services",
+      "description": "Datos y voz ilimitados con operador aliado"
+    },
+    {
+      "id": "03",
+      "name": "Gimnasio",
+      "category": "Acceso a gimnasios afiliados",
+      "description": "Acceso a gimnasios afiliados"
+    }
+    ],
+  "precio": 79.90
+}
+```    
 #### Collections: Solt_Partners
 ```json
 {
