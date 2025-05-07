@@ -969,7 +969,7 @@ ORDER BY u.userid
 -- Ejemplo usando bcp (desde la línea de comandos de Windows):
 -- bcp "SELECT ... FROM Soltura.dbo.Solt_Users..." queryout C:\data\usuarios.csv -c -t, -Slocalhost -Usa -Ppassword
 ```
-
+Otra opción es utilizar el SSMS dándole click derecho a los resultados y utilizando la opción "Guardar Resultados Como ... " y guardarlo como un CSS.  
 ## Configurar una tabla de bitácora en otro servidor SQL Server accesible vía Linked Servers con impersonación segura desde los SP del sistema.
 ```sql
 USE Soltura;
