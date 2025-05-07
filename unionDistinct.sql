@@ -7,13 +7,13 @@ SELECT
     subscriptionid AS PlanID,
     name AS NombrePlan,
     description AS Descripcion,
-    'Individual' AS TipoPlan,
+    'Full Modern Family' AS TipoPlan,
     (SELECT COUNT(*) 
      FROM dbo.Solt_PlansPerGroup PPG 
      JOIN dbo.Solt_UserPerGroup UPG ON PPG.userGroupid = UPG.userGroupid
      WHERE PPG.subscriptionid = S.subscriptionid) AS UsuariosActivos
 FROM dbo.Solt_Subscriptions S
-WHERE isCustom = 0 AND temporary = 0 AND name LIKE '%Individual%'
+WHERE isCustom = 0 AND temporary = 0 AND name LIKE '%Full Modern Family%'
 
 UNION
 
@@ -21,13 +21,13 @@ SELECT
     subscriptionid AS PlanID,
     name AS NombrePlan,
     description AS Descripcion,
-    'Empresarial' AS TipoPlan,
+    'Nómada Digital' AS TipoPlan,
     (SELECT COUNT(*) 
      FROM dbo.Solt_PlansPerGroup PPG 
      JOIN dbo.Solt_UserPerGroup UPG ON PPG.userGroupid = UPG.userGroupid
      WHERE PPG.subscriptionid = S.subscriptionid) AS UsuariosActivos
 FROM dbo.Solt_Subscriptions S
-WHERE isCustom = 0 AND temporary = 0 AND name LIKE '%Empresarial%'
+WHERE isCustom = 0 AND temporary = 0 AND name LIKE '%Nómada Digital%'
 
 ORDER BY UsuariosActivos DESC, NombrePlan;
 GO
