@@ -1062,21 +1062,16 @@ WHERE pf.planFeatureid IN (
 USE Soltura;
 GO
 
--- Procedimiento Almacenado Nivel 1
-CREATE PROCEDURE [dbo].[SP_Nivel1]
+-- Procedimiento Almacenado Nivel 3
+CREATE PROCEDURE [dbo].[SP_Nivel3]
 AS
 BEGIN
-    SET XACT_ABORT ON;  -- Importante para transacciones anidadas
-    BEGIN TRANSACTION;
+    SET XACT_ABORT ON;  
 
-    -- Modificar tablas 1 y 2
-    UPDATE Solt_Users SET firstName = 'Nivel1' WHERE userid = 1;
-    UPDATE Solt_UserPersons SET name = 'Nivel1' WHERE userid = 1;
+    -- Modificar tablas 5 y 6
+    UPDATE Solt_PlanFeatures SET name = 'Nivel3' WHERE planFeatureId = 1;
+    UPDATE Solt_FeaturesPerPlan SET value = 'Nivel3' WHERE subscriptionid = 1 AND planFeatureid = 1; 
 
-    -- Llamar al Procedimiento Almacenado de Nivel 2
-    EXEC [dbo].[SP_Nivel2];
-
-    --COMMIT TRANSACTION; -- No hacer commit aqui para ver el rollback
     SELECT @@TRANCOUNT;
     RETURN 0;
 END;
@@ -1087,36 +1082,34 @@ CREATE PROCEDURE [dbo].[SP_Nivel2]
 AS
 BEGIN
     SET XACT_ABORT ON;
-    --BEGIN TRANSACTION;  -- No es necesario iniciar otra transacción explícita
 
     -- Modificar tablas 3 y 4
-    UPDATE Solt_Subscriptions SET subname = 'Nivel2' WHERE subscriptionid = 1;
+    UPDATE Solt_Subscriptions SET name = 'Nivel2' WHERE subscriptionid = 1; 
     UPDATE Solt_SubscriptionPrices SET price = 22.22 WHERE subscriptionid = 1;
 
     -- Llamar al Procedimiento Almacenado de Nivel 3
     EXEC [dbo].[SP_Nivel3];
 
-    --COMMIT TRANSACTION; -- No hacer commit aqui para ver el rollback
     SELECT @@TRANCOUNT;
     RETURN 0;
 END;
 GO
 
--- Procedimiento Almacenado Nivel 3
-CREATE PROCEDURE [dbo].[SP_Nivel3]
+-- Procedimiento Almacenado Nivel 1
+CREATE PROCEDURE [dbo].[SP_Nivel1]
 AS
 BEGIN
     SET XACT_ABORT ON;
-    --BEGIN TRANSACTION; -- No es necesario iniciar transacción aquí
+    BEGIN TRANSACTION;
 
-    -- Modificar tablas 5 y 6
-    UPDATE Solt_PlanFeatures SET name = 'Nivel3' WHERE planFeatureId = 1;
-    UPDATE Solt_FeaturesPerPlan SET value = 'Nivel3' WHERE planid = 1 AND featureid = 1;
+    -- Modificar tablas 1 y 2
+    UPDATE Solt_Users SET username = 'Nivel1' WHERE userid = 1;
+    UPDATE Solt_UserPersons SET name = 'Nivel1' WHERE userid = 1;
 
-    -- Simular un error para rollback
-    --RAISERROR('Error simulado en Nivel 3', 16, 1);  -- Descomentar para probar el rollback
+    -- Llamar al Procedimiento Almacenado de Nivel 2
+    EXEC [dbo].[SP_Nivel2];
 
-    --COMMIT TRANSACTION;
+    COMMIT TRANSACTION; 
     SELECT @@TRANCOUNT;
     RETURN 0;
 END;
@@ -1129,23 +1122,50 @@ SELECT * FROM Solt_UserPersons WHERE userid = 1;
 SELECT * FROM Solt_Subscriptions WHERE subscriptionid = 1;
 SELECT * FROM Solt_SubscriptionPrices WHERE subscriptionid = 1;
 SELECT * FROM Solt_PlanFeatures WHERE planFeatureId = 1;
-SELECT * FROM Solt_FeaturesPerPlan WHERE planid = 1 AND featureid = 1;
+SELECT * FROM Solt_FeaturesPerPlan WHERE subscriptionid = 1 and planFeatureid = 1;
 GO
 
 -- Ejemplo de ROLLBACK (descomentar la línea RAISERROR en SP_Nivel3)
+--DROP TABLE Solt_Log
+--CREATE TABLE [dbo].[Solt_Log](
+--    [logid] [int] IDENTITY(1,1) NOT NULL,
+--    [eventDate] [datetime] NOT NULL,
+--    [spName] [varchar](128) NOT NULL,
+--    [message] [varchar](max) NULL,
+--    [userid] [int] NULL,
+--    [severity] [int] NOT NULL,
+-- CONSTRAINT [PK_Solt_Log] PRIMARY KEY CLUSTERED 
+--(
+--    [logid] ASC
+--)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+--) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+--GO
+ALTER PROCEDURE [dbo].[SP_Nivel3]
+AS
+BEGIN
+    SET XACT_ABORT ON;  
+    -- Modificar tablas 5 y 6
+    UPDATE Solt_PlanFeatures SET name = 'Nivel3' WHERE planFeatureId = 1;
+    UPDATE Solt_FeaturesPerPlan SET value = 'Nivel3' WHERE subscriptionid = 1 AND planFeatureid = 1; 
+    RAISERROR('Error simulado en Nivel 3', 16, 1);  -- Descomentar para probar el rollback
+    SELECT @@TRANCOUNT;
+    RETURN 0;
+END;
+GO
 EXEC [dbo].[SP_Nivel1];
 SELECT * FROM Solt_Users WHERE userid = 1;
 SELECT * FROM Solt_UserPersons WHERE userid = 1;
 SELECT * FROM Solt_Subscriptions WHERE subscriptionid = 1;
 SELECT * FROM Solt_SubscriptionPrices WHERE subscriptionid = 1;
 SELECT * FROM Solt_PlanFeatures WHERE planFeatureId = 1;
-SELECT * FROM Solt_FeaturesPerPlan WHERE planid = 1 AND featureid = 1;
+SELECT * FROM Solt_FeaturesPerPlan WHERE subscriptionid = 1 and planFeatureid = 1;
 GO
 
 DROP PROCEDURE [dbo].[SP_Nivel1];
 DROP PROCEDURE [dbo].[SP_Nivel2];
 DROP PROCEDURE [dbo].[SP_Nivel3];
 GO
+
 ```
 
 ## Será posible que haciendo una consulta SQL en esta base de datos se pueda obtener un JSON para ser consumido por alguna de las pantallas de la aplicación que tenga que ver con los planes, subscripciones, servicios o pagos. Justifique cuál pantalla podría requerir esta consulta.
