@@ -1797,6 +1797,415 @@ ELSE
     PRINT 'Ocurrió un error al desencriptar';
 ```
 # Concurrencia 
+### DEADLOCK
+#### Transaccion A
+```sql
+-- -------------------------
+-- DEADLOCK
+-- -------------------------
+
+DROP PROCEDURE if EXISTS dbo.ActualizarDireccionUltCanje;
+
+-- Ingresar usuario y actualizar la direccion de su ultimo canjeo a partir del zipcode, luego hacemos un update forzado en redemptiondetails para ver el deadlock
+GO
+CREATE PROCEDURE dbo.ActualizarDireccionUltCanje
+    @username    VARCHAR(30),
+    @newZipcode  VARCHAR(9)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @userid INT,
+            @newAdressid INT,
+            @InicieTransaccion BIT = 0;
+
+    -- Se obtiene el userid y el addressid
+    SELECT @userid = userid FROM Solt_Users WHERE username = @username;
+    IF @userid IS NULL 
+        THROW 50001, 'El usuario no existe', 1;
+
+    SELECT @newAdressid = adressid FROM Solt_Adresses WHERE zipcode = @newZipcode;
+    IF @newAdressid IS NULL 
+        THROW 50002, 'La dirección no existe', 2;
+
+    IF @@TRANCOUNT = 0
+    BEGIN
+         SET @InicieTransaccion = 1;
+         SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+         BEGIN TRANSACTION;
+    END
+
+    BEGIN TRY
+         -- Actualizar la dirección en la que se realizo el ultimo canje
+         UPDATE Solt_RedemptionDetails
+         SET addressid = @newAdressid
+         WHERE transactionid = (
+               SELECT TOP 1 transactionId
+               FROM Solt_Transactions 
+               WHERE userid = @userid
+               ORDER BY postTime DESC
+         );
+
+         WAITFOR DELAY '00:00:08';  -- Se usa para simular concurrencia
+
+         -- Forzar un UPDATE que no cambia el valor
+         UPDATE Solt_RedemptionCodes
+         SET redemptionStatusid = redemptionStatusid
+         WHERE userid = @userid 
+           AND GETDATE() < expirationTime;
+
+         IF @InicieTransaccion = 1 
+             COMMIT;
+    END TRY
+    BEGIN CATCH
+         IF @InicieTransaccion = 1 
+             ROLLBACK;
+         THROW;
+    END CATCH;
+END;
+GO
+
+EXEC dbo.ActualizarDireccionUltCanje @username = 'djiménez', @newZipcode = '28010';
+```
+#### Transaccion B
+```sql
+-- -------------------------
+-- DEADLOCK
+-- -------------------------
+
+DROP PROCEDURE if EXISTS dbo.ObtenerTransaccionUltCanje;
+
+-- Con UPDATE cambia el estado del codigo de canje a que esta PROCESSING, cambiar el status. Usar un SELECT para revisar el transactionid del canje
+GO
+CREATE PROCEDURE dbo.ObtenerTransaccionUltCanje
+    @username     VARCHAR(30),
+    @partnername  VARCHAR(60),
+    @methodname   VARCHAR(50),
+    @transactionId BIGINT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @userid INT,
+            @partnerid INT,
+            @methodid TINYINT,
+            @InicieTransaccion BIT = 0;
+
+    -- Se obtiene el userid, partnerid y methodid
+    SELECT @userid = userid FROM Solt_Users WHERE username = @username;
+    IF @userid IS NULL 
+        THROW 50001, 'El usuario no existe', 1;
+
+    SELECT @partnerid = partnerid FROM Solt_Partners WHERE name = @partnername;
+    IF @partnerid IS NULL 
+        THROW 50002, 'El proveedor no existe', 2;
+
+    SELECT @methodid = methodid FROM Solt_RedemptionMethod WHERE name = @methodname;
+    IF @methodid IS NULL 
+        THROW 50003, 'El método de canje no existe', 3;
+
+    IF @@TRANCOUNT = 0
+    BEGIN
+        SET @InicieTransaccion = 1;
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+        BEGIN TRANSACTION;
+    END
+
+    BEGIN TRY
+
+		-- Actualizar Solt_RedemptionCodes 
+		UPDATE Solt_RedemptionCodes
+        SET redemptionStatusid = 2         -- Suponga que el 2 representa un codigo en estado PROCESSING
+        WHERE methodid = @methodid AND userid = @userid AND GETDATE() < expirationTime;
+
+        WAITFOR DELAY '00:00:02';  -- Se usa para simular concurrencia
+
+		-- Forzar un UPDATE que no cambia el valor
+		UPDATE Solt_RedemptionDetails
+		SET addressid = addressid
+		WHERE transactionid = (
+			 SELECT TOP 1 transactionId 
+			 FROM Solt_Transactions 
+			 WHERE userid = @userid 
+			 ORDER BY postTime DESC
+		);
+
+        -- Se obtiene el transactionid
+        SELECT @transactionId = transactionid
+        FROM Solt_RedemptionDetails
+        WHERE transactionid = (
+             SELECT TOP 1 transactionId 
+             FROM Solt_Transactions 
+             WHERE userid = @userid 
+             ORDER BY postTime DESC
+        );
+
+        IF @transactionId IS NULL
+            THROW 50004, 'No se encontró la transacción', 4;
+
+        IF @InicieTransaccion = 1 
+            COMMIT;
+    END TRY
+    BEGIN CATCH
+        IF @InicieTransaccion = 1 
+            ROLLBACK;
+        THROW;
+    END CATCH;
+END;
+GO
+
+DECLARE @transactionId BIGINT;
+EXEC ObtenerTransaccionUltCanje @username = 'djiménez', @partnername = 'SmartFit Costa Rica', @methodname = 'Código QR', @transactionId = @transactionId OUTPUT;
+
+```
+### DEADLOCK CASCADA
+#### Transaccion A
+```sql
+-- -------------------------
+-- DEADLOCK CASCADA
+-- -------------------------
+
+DROP PROCEDURE if EXISTS dbo.ActualizarUsuarioEnGrupo;
+
+-- Revisa el estado actual del usuario y lo desactiva o activa del grupo de acuerdo al caso
+GO
+CREATE PROCEDURE dbo.ActualizarUsuarioEnGrupo
+    @username VARCHAR(30),
+	@enabled BIT
+AS 
+BEGIN
+    SET NOCOUNT ON
+    
+    DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT, @CustomError INT
+    DECLARE @Message VARCHAR(200)
+    DECLARE @InicieTransaccion BIT
+
+	DECLARE @userid INT;
+
+    SET @InicieTransaccion = 0
+    IF @@TRANCOUNT = 0 BEGIN
+        SET @InicieTransaccion = 1
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        BEGIN TRANSACTION       
+    END
+    
+    BEGIN TRY
+        SET @CustomError = 3003
+
+		-- Se obtiene el id del usuario consultado
+		SELECT @userid = userid
+		FROM Solt_Users
+		WHERE username = @username;
+		IF @userid IS NULL
+			THROW 50001, 'El usuario no existe', 1  -- Envia un codigo y mensaje de error custom
+
+		-- Se reactiva el usuario al cambiar su estado dentro de los grupos
+		UPDATE Solt_Users
+        SET enabled = 1
+        WHERE userid = @userid;
+	
+        WAITFOR DELAY '00:00:07'; -- Simulación de concurrencia
+        
+        -- Se actualiza el estado del usuario dentro del grupo
+        UPDATE Solt_UserPerGroup
+        SET enabled = @enabled
+        WHERE userid = @userid;
+
+        IF @InicieTransaccion = 1 BEGIN
+            COMMIT
+        END
+    END TRY
+    BEGIN CATCH
+        SET @ErrorNumber = ERROR_NUMBER()
+        SET @ErrorSeverity = ERROR_SEVERITY()
+        SET @ErrorState = ERROR_STATE()
+        SET @Message = ERROR_MESSAGE()
+        
+        IF @InicieTransaccion = 1 BEGIN
+            ROLLBACK
+        END
+        
+        RAISERROR('%s - Error Number: %i', 
+            @ErrorSeverity, @ErrorState, @Message, @CustomError)
+    END CATCH   
+END
+RETURN 0
+GO
+
+EXEC ActualizarUsuarioEnGrupo @username = 'djiménez', @enabled = 1;
+```
+#### Transaccion B
+```sql
+-- -------------------------
+-- DEADLOCK CASCADA
+-- -------------------------
+
+DROP PROCEDURE if EXISTS dbo.MarcarSalidaGrupo;
+
+-- Con UPDATE cambia el estado del codigo de canje a que esta PROCESSING, cambiar el status. Usar un SELECT para revisar el transactionid del canje
+GO
+CREATE PROCEDURE dbo.MarcarSalidaGrupo
+    @username VARCHAR(30)
+AS 
+BEGIN
+    SET NOCOUNT ON
+    
+    DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT, @CustomError INT
+    DECLARE @Message VARCHAR(200)
+    DECLARE @InicieTransaccion BIT
+    
+	DECLARE @userid int;
+	DECLARE @userGroupid int;
+	-- Se obtiene el userid vinculado al username ingresado
+	SELECT @userid = userid
+	FROM Solt_Users
+	WHERE username = @username;
+	IF @userid IS NULL
+		THROW 50001, 'El usuario no existe', 1  -- Envia un codigo y mensaje de error custom
+
+    SET @InicieTransaccion = 0
+    IF @@TRANCOUNT = 0 BEGIN
+        SET @InicieTransaccion = 1
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        BEGIN TRANSACTION       
+    END
+    
+    BEGIN TRY
+        SET @CustomError = 3002
+
+		-- Se obtiene el id del grupo
+		SELECT @userGroupid = userGroupid
+        FROM Solt_UserPerGroup
+        WHERE userid = @userid;
+        IF @userGroupid IS NULL
+           THROW 50005, 'El grupo no existe', 2;
+
+		-- Se actualiza la fecha de salida a la actual
+		UPDATE Solt_UserPerGroup
+        SET exitDate = GETDATE(), enabled = 0
+        WHERE userid = @userid; -- AND userGroupid = @userGroupid;
+		
+        WAITFOR DELAY '00:00:07'; -- Simulación de concurrencia
+
+		-- Se actualizan los datos de modificacion
+		UPDATE Solt_UserGroups
+        SET modificationDesc = 'Salida del usuario ' + @username, modification = GETDATE()
+        WHERE userGroupid = @userGroupid;
+
+        IF @InicieTransaccion = 1 BEGIN
+            COMMIT
+        END
+    END TRY
+    BEGIN CATCH
+        SET @ErrorNumber = ERROR_NUMBER()
+        SET @ErrorSeverity = ERROR_SEVERITY()
+        SET @ErrorState = ERROR_STATE()
+        SET @Message = ERROR_MESSAGE()
+        
+        IF @InicieTransaccion = 1 BEGIN
+            ROLLBACK
+        END
+        
+        RAISERROR('%s - Error Number: %i', 
+            @ErrorSeverity, @ErrorState, @Message, @CustomError)
+    END CATCH   
+END
+GO
+
+```
+#### Transaccion C
+```sql
+-- -------------------------
+-- DEADLOCK CASCADA
+-- -------------------------
+DROP PROCEDURE if EXISTS dbo.AsignarUsernameDuennoGrupo;
+
+-- Busca el grupo al que pertenece el usuario y lo convierte en duenno de ese mismo grupo
+GO
+CREATE PROCEDURE dbo.AsignarUsernameDuennoGrupo
+    @username VARCHAR(30)
+AS 
+BEGIN
+    SET NOCOUNT ON
+    
+    DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT, @CustomError INT
+    DECLARE @Message VARCHAR(200)
+    DECLARE @InicieTransaccion BIT
+
+	DECLARE @userid INT;
+	DECLARE @userGroupid int;
+
+	-- Se obtiene el id del usuario consultado
+	SELECT @userid = userid
+	FROM Solt_Users
+	WHERE username = @username;
+	IF @userid IS NULL
+		THROW 50001, 'El usuario no existe', 1  -- Envia un codigo y mensaje de error custom
+
+	SELECT @userGroupid = userGroupid
+    FROM Solt_UserPerGroup
+    WHERE userid = @userid;
+    IF @userGroupid IS NULL
+        THROW 50006, 'El usuario no esta en un grupo', 2;
+
+    SET @InicieTransaccion = 0
+    IF @@TRANCOUNT = 0 BEGIN
+        SET @InicieTransaccion = 1
+        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+        BEGIN TRANSACTION       
+    END
+    
+    BEGIN TRY
+        SET @CustomError = 3005
+
+		UPDATE Solt_UserGroups
+         SET modificationDesc = modificationDesc + ' '
+         WHERE userGroupid = @userGroupid;
+
+         WAITFOR DELAY '00:00:06'; -- Simula concurrencia
+
+         -- Paso 2: Actualiza Solt_Users (actualiza el username del dueño)
+         UPDATE Solt_Users
+         SET username = CASE 
+                           WHEN username NOT LIKE '%(Owner)%' 
+                           THEN username + '(Owner)' 
+                           ELSE username 
+                        END
+         WHERE userid = (
+             SELECT groupOwner 
+             FROM Solt_UserGroups 
+             WHERE userGroupid = @userGroupid
+         );
+
+        IF @InicieTransaccion = 1 BEGIN
+            COMMIT
+        END
+    END TRY
+    BEGIN CATCH
+        SET @ErrorNumber = ERROR_NUMBER()
+        SET @ErrorSeverity = ERROR_SEVERITY()
+        SET @ErrorState = ERROR_STATE()
+        SET @Message = ERROR_MESSAGE()
+        
+        IF @InicieTransaccion = 1 BEGIN
+            ROLLBACK
+        END
+        
+        RAISERROR('%s - Error Number: %i', 
+            @ErrorSeverity, @ErrorState, @Message, @CustomError)
+    END CATCH   
+END
+RETURN 0
+GO
+
+UPDATE Solt_Users
+SET username = 'djiménez'
+WHERE userid = 1;
+
+EXEC AsignarUsernameDuennoGrupo @username = 'djiménez';
+
+ SELECT * FROM Solt_Users;
+```
 ### READ UNCOMMITTED
 READ UNCOMMITED es un nivel de isolación que NO bloquea las otras tablas. Este es útil para realizar consultas que no dependan de la precisión de los datos en un momento dado. Otra ventaja de este es la velocidad inherente de no tener que depender de otras tablas. Por este motivo, se ha optado por realizar un reporte general histórico de la tabla de Logs. Ver la información de los Logs no debe restringir el uso de otras tablas.
 ```sql
@@ -2106,7 +2515,8 @@ Se considera que la transacción de volumen en la plataforma de Soltura es el Ca
 #### Calcular TPS
 Para calcular el número de transacciones que se pueden realizar por segundo, es necesario hacer uso de herramientas externas. En este caso, la herramienta SQLQueryStress resulta conveniente para abrir una serie de threads y ejecutar la transacción de canjeo un número determinado de veces.   
 
-![image](https://github.com/user-attachments/assets/03c12876-a0b0-4ad1-a864-7953afeeddfd)
+![image](https://github.com/user-attachments/assets/03c12876-a0b0-4ad1-a864-7953afeeddfd)  
+
 SQLQueryStress muestra varias estadísticas. Entre ellas la cantidad de segundos que tarda un proceso en terminarse a nivel de cliente. Se trabajará con una saturación máxima en el CPU de un 70%. Calcular las transacciones por segundo de canjes en esta aplicación es vital para entender el nivel de eficiencia que maneja Soltura.
 #### Triplicar el valor
 Si queremos triplicar el valor de las transacciones por segundo, es vital distribuir la carga en varios threads. Si se conectan más hilos, se repartirá la carga entre diferentes puntos de acceso. Obteniendo así una menor carga en una sola línea de consultas y transacciones más rápidas sin necesidad de modificar hardware ni queries.
