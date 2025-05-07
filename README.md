@@ -2230,6 +2230,89 @@ GROUP BY CASE
         WHEN creationDate < '2025-01-01' THEN 'Grupos Antiguos'
     END;
 ```
+## Imagine una cosulta que el sistema va a necesitar para mostrar cierta información, o reporte o pantalla, y que esa consulta vaya a requerir:
+## 4 JOINs entre tablas.
+## 2 funciones agregadas (ej. SUM, AVG).
+## 3 subconsultas or 3 CTEs
+## Un CASE, CONVERT, ORDER BY, HAVING, una función escalar, y operadores como IN, NOT IN, EXISTS.
+## Escriba dicha consulta y ejecutela con el query analizer, utilizando el analizador de pesos y costos del plan de ejecución, reacomode la consulta para que sea más eficiente sin necesidad de agregar nuevos índices.
+
+```sql
+-- 0) Función escalar de ejemplo
+CREATE OR ALTER FUNCTION dbo.fn_CalcDiscount(@total MONEY)
+RETURNS MONEY
+AS
+BEGIN
+  RETURN CASE WHEN @total > 1000 THEN @total * 0.02 ELSE 0 END;
+END;
+GO
+
+;WITH
+-- 1) Intentos del último mes
+CTE_Attempts AS (
+  SELECT
+    pa.userId,
+    pa.amount,
+    pa.creationDate,
+    pa.currencyId
+  FROM dbo.Solt_PaymentAttempts AS pa
+  WHERE pa.creationDate >= DATEADD(MONTH, -1, GETDATE())
+),
+
+-- 2) Estadísticas por usuario
+CTE_Stats AS (
+  SELECT
+    a.userId,
+    COUNT(*) AS AttemptCount,
+    SUM(a.amount) AS TotalAmount,
+    AVG(a.amount) AS AvgAmount,
+    MAX(a.currencyId) AS currencyId
+  FROM CTE_Attempts AS a
+  GROUP BY a.userId
+  HAVING COUNT(*) > 0
+),
+
+-- 3) Fecha del primer intento
+CTE_FirstAttempt AS (
+  SELECT
+    userId,
+    MIN(creationDate) AS FirstAttemptDate
+  FROM dbo.Solt_PaymentAttempts
+  GROUP BY userId
+)
+
+SELECT
+  u.userId,
+  CONCAT(up.name, ' ',
+         up.firstLastname,
+         COALESCE(' ' + up.secondLastname, ''))
+		 AS FullName,
+  s.AttemptCount,
+  s.TotalAmount,
+  s.AvgAmount,
+  CASE 
+    WHEN s.TotalAmount > 100 THEN N'High Spender' 
+    ELSE N'Regular' 
+  END AS UserTier,
+  CONVERT(VARCHAR(10), fa.FirstAttemptDate, 103) AS SignupDate,
+  dbo.fn_CalcDiscount(s.TotalAmount) AS Discount,
+  c.acronym AS Currency
+FROM CTE_Stats AS s
+JOIN CTE_FirstAttempt AS fa ON fa.userId = s.userId
+JOIN dbo.Solt_Users AS u ON u.userId = s.userId
+JOIN dbo.Solt_UserPersons AS up ON up.userId = u.userId
+JOIN dbo.Solt_Currencies AS c ON c.currencyId = s.currencyId
+
+WHERE u.enabled = 1  
+  AND EXISTS (
+    SELECT 1
+    FROM dbo.Solt_UserPerGroup gp
+    WHERE gp.userId = u.userId)
+  AND c.acronym NOT IN ('EUR')
+
+ORDER BY s.TotalAmount DESC;
+```
+
 ## Escribir un SELECT que use CASE para crear una columna calculada que agrupe dinámicamente datos (por ejemplo, agrupar cantidades de usuarios por plan en rangos de monto, no use este ejemplo).  
 ```sql
 USE Soltura;
