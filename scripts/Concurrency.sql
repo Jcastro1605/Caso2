@@ -38,7 +38,7 @@ BEGIN
     BEGIN TRY
         SET @CustomError = 3006;
 
-		-- Se obtiene el ranking de usuarios según los redeems registrados en el LogRedeems
+		-- Se obtiene el ranking de usuarios segÃºn los redeems registrados en el LogRedeems
         SELECT u.username,
             COALESCE(COUNT(
 			CASE 
@@ -125,8 +125,8 @@ BEGIN
 	  -- Es posible que la tasa de cambio dependa del momento en el que se realiza la transaccion debido al READ COMITTED. 
         SELECT @totalAmount = SUM(COALESCE(amount, 0) * 
 		CASE 
-			WHEN tr.currencyId = @destinationCurrencyid THEN 1  -- Si la moneda de la transacción ya es la de destino, no se convierte
-			ELSE COALESCE(cc.exchangeRate, 1)                   -- Si no hay exchangeRate válido, se deja la moneda igual
+			WHEN tr.currencyId = @destinationCurrencyid THEN 1  -- Si la moneda de la transacciÃ³n ya es la de destino, no se convierte
+			ELSE COALESCE(cc.exchangeRate, 1)                   -- Si no hay exchangeRate vÃ¡lido, se deja la moneda igual
 		END) 
         FROM Solt_Transactions tr
         INNER JOIN Solt_CurrencyConversions cc ON tr.currencyId = cc.source_currencyid
@@ -167,7 +167,7 @@ EXEC ConvertirMonedaTransacciones @username = 'ElenaSilR45', @destinationCurrenc
 DROP PROCEDURE IF EXISTS dbo.InsertarFullModernFamilyPlan;
 
 -- Transaccion para insertar un nuevo plan tipo Full Modern Family para un grupo, la transaccion solo puede realizarse si el usuario es groupOwner.
--- Se utiliza REPEATABLE READ para garantizar que ningún otro proceso pueda actualizar los datos de la suscripcion que se esta adquiriendo.
+-- Se utiliza REPEATABLE READ para garantizar que ningÃºn otro proceso pueda actualizar los datos de la suscripcion que se esta adquiriendo.
 
 GO
 CREATE PROCEDURE dbo.InsertarFullModernFamilyPlan
@@ -197,7 +197,7 @@ BEGIN
 	FROM Solt_UserPerGroup
 	WHERE userid = @userid;
 	IF @userGroupid IS NULL
-        THROW 50006, 'El usuario no está en un grupo', 2;
+        THROW 50006, 'El usuario no estÃ¡ en un grupo', 2;
     
 	-- Se verifica que el usuario sea el owner del grupo al que pertenece.
     SELECT @groupOwnerid = groupOwner
