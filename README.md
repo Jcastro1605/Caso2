@@ -3,6 +3,7 @@ Entregable para el caso 2 del curso de Bases de Datos I
 
 # Proceda entonces en conjunto con sus colegas consultores de empresa a realizar el diseño de ambas bases de datos.
 ## Base de datos en SQLServer
+También está en el main del repo.
 ![image](https://github.com/Jcastro1605/Caso2/blob/cursores/Dise%C3%B1oSolturaSQLServer.png)
 
 ## Base de datos de MongoDB (para la página web de Soltura)
