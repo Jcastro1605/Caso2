@@ -31,7 +31,7 @@ BEGIN
         @redemptionCodeid = i.redemptionCodeid,
 		@redemptionStatusid =i.redemptionStatusid,
 		@username = u.username,
-		@computer = 'PC de ' + @username
+		@computer = 'PC desconocido'
     FROM inserted i
 	INNER JOIN dbo.Solt_Users u ON i.userid = u.userid
     WHERE redemptionStatusid = 2;
