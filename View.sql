@@ -49,7 +49,10 @@ BEGIN
     VALUES (@description, @computer, @username, @trace, @redemptionCodeid, CAST(@redemptionStatusid AS VARCHAR), @checksum, @logTypeid, 1, 1);
 END;
 GO
-	
+
+--update Solt_RedemptionCodes 
+--set redemptionStatusid = 1
+--where redemptionCodeid = 1;
 -- ---------------------------
 -- SCHEMABINGING EN VISTAS
 -- ---------------------------
