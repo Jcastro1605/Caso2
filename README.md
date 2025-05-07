@@ -233,6 +233,58 @@ BEGIN
 END
 ```
 
+## UNION entre planes individuales y empresariales por ejemplo.
+
+```sql
+USE Soltura;
+GO
+
+SELECT 
+    subscriptionid AS PlanID,
+    name AS NombrePlan,
+    description AS Descripcion,
+    'Full Modern Family' AS TipoPlan,
+    (SELECT COUNT(*) 
+     FROM dbo.Solt_PlansPerGroup PPG 
+     JOIN dbo.Solt_UserPerGroup UPG ON PPG.userGroupid = UPG.userGroupid
+     WHERE PPG.subscriptionid = S.subscriptionid) AS UsuariosActivos
+FROM dbo.Solt_Subscriptions S
+WHERE isCustom = 0 AND temporary = 0 AND name LIKE '%Full Modern Family%'
+
+UNION
+
+SELECT 
+    subscriptionid AS PlanID,
+    name AS NombrePlan,
+    description AS Descripcion,
+    'Nómada Digital' AS TipoPlan,
+    (SELECT COUNT(*) 
+     FROM dbo.Solt_PlansPerGroup PPG 
+     JOIN dbo.Solt_UserPerGroup UPG ON PPG.userGroupid = UPG.userGroupid
+     WHERE PPG.subscriptionid = S.subscriptionid) AS UsuariosActivos
+FROM dbo.Solt_Subscriptions S
+WHERE isCustom = 0 AND temporary = 0 AND name LIKE '%Nómada Digital%'
+
+ORDER BY UsuariosActivos DESC, NombrePlan;
+GO
+```
+
+## DISTINCT para evitar duplicados en servicios asignados por ejemplo.
+
+```sql
+USE Soltura;
+GO
+SELECT DISTINCT
+    PF.name AS ServicioUnico,
+    PF.description AS DescripcionServicio
+FROM dbo.Solt_PlanFeatures PF
+JOIN dbo.Solt_FeaturesPerPlan FPP ON PF.planFeatureid = FPP.planFeatureid
+JOIN dbo.Solt_Subscriptions S ON FPP.subscriptionid = S.subscriptionid
+WHERE FPP.enabled = 1
+ORDER BY ServicioUnico;
+GO
+```
+
 # Mantenimiento de la Seguridad  
 Primero crearemos los inicios de sesión para los usuarios.  
 ![image](https://github.com/user-attachments/assets/1a046298-217c-4e09-9fba-9d02a5506e04)  
