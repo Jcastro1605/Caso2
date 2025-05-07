@@ -11,89 +11,66 @@ USE [Soltura]
 
 DROP PROCEDURE if EXISTS dbo.ActualizarDireccionUltCanje;
 
--- Ingresar usuario y revisar que el codigo exista SELECT, que el id este dentro de redemptionCode, luego hacemos un update con la nueva adressid para redemptiondetails
+-- Ingresar usuario y actualizar la direccion de su ultimo canjeo a partir del zipcode, luego hacemos un update forzado en redemptiondetails para ver el deadlock
 GO
 CREATE PROCEDURE dbo.ActualizarDireccionUltCanje
-    @username VARCHAR(30),
-    @newZipcode VARCHAR(9)
-AS 
+    @username    VARCHAR(30),
+    @newZipcode  VARCHAR(9)
+AS
 BEGIN
-    SET NOCOUNT ON
-    
-    DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT, @CustomError INT
-    DECLARE @Message VARCHAR(200)
-    DECLARE @InicieTransaccion BIT
+    SET NOCOUNT ON;
 
-	DECLARE @userid int;
-	DECLARE @redemptionCodeid int;
-	DECLARE @newAdressid int;
-	-- Se obtiene el userid vinculado al username ingresado
-	SELECT @userid = userid
-	FROM Solt_Users
-	WHERE username = @username;
-	IF @userid IS NULL
-			THROW 50001, 'El usuario no existe', 1  -- Envia un codigo y mensaje de error custom
-	-- Se obtiene el adressid vinculado al zipcode ingresado
-	SELECT @newAdressid = adressid
-	FROM Solt_Adresses
-	WHERE zipcode = @newZipcode;
-	IF @newAdressid IS NULL
-			THROW 50002, 'La direccion no existe', 2  -- Envia un codigo y mensaje de error custom
+    DECLARE @userid INT,
+            @newAdressid INT,
+            @InicieTransaccion BIT = 0;
 
-    SET @InicieTransaccion = 0
-    IF @@TRANCOUNT = 0 BEGIN
-        SET @InicieTransaccion = 1
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-        BEGIN TRANSACTION       
+    -- Se obtiene el userid y el addressid
+    SELECT @userid = userid FROM Solt_Users WHERE username = @username;
+    IF @userid IS NULL 
+        THROW 50001, 'El usuario no existe', 1;
+
+    SELECT @newAdressid = adressid FROM Solt_Adresses WHERE zipcode = @newZipcode;
+    IF @newAdressid IS NULL 
+        THROW 50002, 'La direcci√≥n no existe', 2;
+
+    IF @@TRANCOUNT = 0
+    BEGIN
+         SET @InicieTransaccion = 1;
+         SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+         BEGIN TRANSACTION;
     END
-    
+
     BEGIN TRY
-        SET @CustomError = 3001
+         -- Actualizar la direcci√≥n en la que se realizo el ultimo canje
+         UPDATE Solt_RedemptionDetails
+         SET addressid = @newAdressid
+         WHERE transactionid = (
+               SELECT TOP 1 transactionId
+               FROM Solt_Transactions 
+               WHERE userid = @userid
+               ORDER BY postTime DESC
+         );
 
-		-- Se obtiene el redemptioncodeid vinculado al userid
-	 
-		SELECT @redemptionCodeid = redemptionCodeid
-		FROM Solt_RedemptionCodes
-		WHERE userid = @userid AND GETDATE()<expirationTime;
-	
-		IF @redemptionCodeid IS NULL
-			THROW 50003, 'El usuario no tiene mÈtodo de canjeo disponible', 3  -- Envia un codigo y mensaje de error custom
+         WAITFOR DELAY '00:00:08';  -- Se usa para simular concurrencia
 
-        WAITFOR DELAY '00:00:05'; -- SimulaciÛn de concurrencia
-        
-        -- Se actualiza la ubicacion con el nuevo adress
-        UPDATE rd
-        SET addressid = @newAdressid
-		FROM Solt_RedemptionDetails rd
-		INNER JOIN (
-			SELECT TOP 1 transactionId 
-			FROM Solt_Transactions 
-			WHERE userid = @userid
-			ORDER BY postTime DESC
-		)tr ON tr.transactionId = rd.transactionid;
+         -- Forzar un UPDATE que no cambia el valor
+         UPDATE Solt_RedemptionCodes
+         SET redemptionStatusid = redemptionStatusid
+         WHERE userid = @userid 
+           AND GETDATE() < expirationTime;
 
-        IF @InicieTransaccion = 1 BEGIN
-            COMMIT
-        END
+         IF @InicieTransaccion = 1 
+             COMMIT;
     END TRY
     BEGIN CATCH
-        SET @ErrorNumber = ERROR_NUMBER()
-        SET @ErrorSeverity = ERROR_SEVERITY()
-        SET @ErrorState = ERROR_STATE()
-        SET @Message = ERROR_MESSAGE()
-        
-        IF @InicieTransaccion = 1 BEGIN
-            ROLLBACK
-        END
-        
-        RAISERROR('%s - Error Number: %i', 
-            @ErrorSeverity, @ErrorState, @Message, @CustomError)
-    END CATCH   
-END
-RETURN 0
+         IF @InicieTransaccion = 1 
+             ROLLBACK;
+         THROW;
+    END CATCH;
+END;
 GO
 
-EXEC ActualizarDireccionUltCanje @username = 'Juan', @newZipcode = '20102';
+EXEC dbo.ActualizarDireccionUltCanje @username = 'djim√©nez', @newZipcode = '28010';
 
 -- -------------------------
 -- DEADLOCK CASCADA
@@ -138,7 +115,7 @@ BEGIN
         SET enabled = 1
         WHERE userid = @userid;
 	
-        WAITFOR DELAY '00:00:05'; -- SimulaciÛn de concurrencia
+        WAITFOR DELAY '00:00:05'; -- Simulaci√≥n de concurrencia
         
         -- Se actualiza el estado del usuario dentro del grupo
         UPDATE Solt_UserPerGroup
