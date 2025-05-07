@@ -736,29 +736,28 @@ Tablas Involucradas:
 ```sql
 USE Soltura;
 
--- 1. INTERSECTION: Servicios comunes a todos los planes
+-- 1. INTERSECTION: Servicios comunes a todas las suscripciones
 SELECT pf.name AS NombreServicio
 FROM Solt_PlanFeatures pf
-WHERE pf.planFeatureId IN (
-    SELECT featureid
-    FROM Solt_FeaturesPerPlan
-    WHERE planid IN (SELECT subscriptionid FROM Solt_Subscriptions) --todos los subscriptionid son planid
-    GROUP BY featureid
-    HAVING COUNT(DISTINCT planid) = (SELECT COUNT(DISTINCT subscriptionid) FROM Solt_Subscriptions) --todos los subscriptionid son planid
+WHERE pf.planFeatureid IN (
+    SELECT fpp.planFeatureid
+    FROM Solt_FeaturesPerPlan fpp
+    WHERE fpp.subscriptionid IN (SELECT subscriptionid FROM Solt_Subscriptions)
+    GROUP BY fpp.planFeatureid
+    HAVING COUNT(DISTINCT fpp.subscriptionid) = (SELECT COUNT(DISTINCT subscriptionid) FROM Solt_Subscriptions)
 );
 
--- 2. SET DIFFERENCE: Servicios del Plan 1 que no están en el Plan 2
--- Asumiendo que tienes PlanID 1 y 2. Ajusta los IDs según tu caso.
+-- 2. SET DIFFERENCE: Servicios de la Suscripción 1 que no están en la Suscripción 2
 SELECT pf.name AS NombreServicio
 FROM Solt_PlanFeatures pf
-WHERE pf.planFeatureId IN (
-    SELECT featureid
-    FROM Solt_FeaturesPerPlan
-    WHERE planid = 1  -- Plan 1
+WHERE pf.planFeatureid IN (
+    SELECT fpp.planFeatureid
+    FROM Solt_FeaturesPerPlan fpp
+    WHERE fpp.subscriptionid = 1  -- Suscripción 1
     EXCEPT
-    SELECT featureid
-    FROM Solt_FeaturesPerPlan
-    WHERE planid = 2  -- Plan 2
+    SELECT fpp.planFeatureid
+    FROM Solt_FeaturesPerPlan fpp
+    WHERE fpp.subscriptionid = 2  -- Suscripción 2
 );
 ```
 ## Crear un procedimiento almacenado transaccional que llame a otro SP transaccional, el cual a su vez llame a otro SP transaccional.
