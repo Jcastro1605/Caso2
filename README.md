@@ -2512,8 +2512,78 @@ DROP PROCEDURE [dbo].[SP_SomeOtherSP];
 DROP PROCEDURE [dbo].[SP_LogMessage];
 -- El linked server se debe eliminar manualmente en SSMS
 ```
-
-
+# Migración de AppAsistant
+## Collections de Mongo
+### Collection: Solt_News
+```json
+{
+  "_id": {
+    "$oid": "6815700bddf41ed3002dcd97"
+  },
+  "newsid": 2,
+  "mainTitle": "Soltura lanza integración con Google Pay para usuarios de AppAsistant",
+  "abstract": "Desde el 15 de noviembre, los usuarios de Soltura con cuentas en AppAsistant podrán vincular sus membresías directamente a Google Pay para acceder a beneficios sin necesidad de la app",
+  "postDate": "2025-06-05T00:00:00Z",
+  "image": "https://imgURL.com/google-pay-integration.jpg",
+  "subHeadlines": [
+    {
+      "outerTitle": "Cómo activar la función",
+      "relevantDetails": [
+        {
+          "innerTitle": "Paso a paso",
+          "messageText": "Dirígete a PERFIL > MIS MEMBRESÍAS > VINCULAR CON GOOGLE PAY. Acepta los permisos y confirma."
+        },
+        {
+          "innerTitle": "Ventajas",
+          "messageText": "Podrás usar tu membresía incluso sin conexión a internet, gracias al almacenamiento local en Google Pay."
+        }
+      ]
+    }
+  ],
+  "language": "es-ES"
+}
+```
+### Collection: Solt_Partners
+```json
+{
+  "_id": {
+    "$oid": "681679892838f8177dd1e9de"
+  },
+  "partnerCardid": 5,
+  "name": "App Asistant",
+  "logo": "https://cloud.soltura.com/partnerBanners/l5.png",
+  "bannerImg": "https://cloud.soltura.com/partnerLogos/b5.png",
+  "description": "Nosotros ofrecemos una plataforma que te ayudará a realizar varias tareas en una gran cantidad de aplicaciones y de todos los tipos.",
+  "benefits": [
+    "Subscripción incluida de la plataforma App Asistant"
+  ],
+  "contactInfo": [
+    {
+      "type": "Phone",
+      "value": "8888-8888"
+    },
+    {
+      "type": "website",
+      "value": "https://appasistant.com"
+    }
+  ]
+}
+```
+### Collection: Solt_HomeBanners
+```json
+{
+  "_id": {
+    "$oid": "681671582838f8177dd1e9c4"
+  },
+  "bannerid": 2,
+  "title": "Soltura adquire App Asistant!",
+  "isFeatured": true,
+  "image": "https://cloud.soltura.com/bannerImgs/b2.png",
+  "link": "/solturaNews.html",
+  "linkText": "Aprende como migrarte aquí",
+  "uploadDate": "2025-05-03T09:15:00Z"
+}
+```
 
 
 
