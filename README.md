@@ -110,6 +110,15 @@ IF @retorno = 0
 ELSE
     PRINT 'Ocurrió un error al desencriptar';
 ```
+# Concurrencia 
+## READ UNCOMMITED
+
+## READ COMMITED
+
+## REPEATABLE READ
+
+## SERIALIZATION
+
 # Consultas Misceláneas  
 ## Crear una vista indexada con al menos 4 tablas (ej. usuarios, suscripciones, pagos, servicios). La vista debe ser dinámica, no una vista materializada con datos estáticos. Demuestre que si es dinámica.  
 ```sql
@@ -148,15 +157,6 @@ CREATE UNIQUE CLUSTERED INDEX Index_VW_PartnerFeatures
 ON dbo.vw_PartnerFeatures (partnerid, planFeatureid, methodid);
 GO
 ```
-# Concurrencia 
-## READ UNCOMMITED
-
-## READ COMMITED
-
-## REPEATABLE READ
-
-## SERIALIZATION
-
 ## Crear un procedimiento almacenado transaccional que realice una operación del sistema, relacionado a subscripciones, pagos, servicios, transacciones o planes, y que dicha operación requiera insertar y/o actualizar al menos 3 tablas.  
 ```sql
 ----------------------------------------------------------------------
@@ -248,6 +248,15 @@ GROUP BY CASE
         WHEN creationDate < '2025-01-01' THEN 'Grupos Antiguos'
     END;
 ```
+## Será posible que haciendo una consulta SQL en esta base de datos se pueda obtener un JSON para ser consumido por alguna de las pantallas de la aplicación que tenga que ver con los planes, subscripciones, servicios o pagos. Justifique cuál pantalla podría requerir esta consulta.
+```sql
+SELECT F.name, P.name FROM Solt_PlanFeatures F
+INNER JOIN Solt_FeaturePerDeal FPD ON F.planFeatureid = FPD.planFeatureid
+INNER JOIN Solt_PartnerDeals PD ON PD.partnerDealid = FPD.partnerDealid
+INNER JOIN Solt_Partners P ON P.partnerid = PD.partnerid
+FOR JSON AUTO
+```
+Esta consulta puede ser necesaria cuando se necesite mostrar un catálogo en alguna interfaz gráfica y se necesiten ver los distintos proveedores que ofrecen un determinado servicio.  
 
 
 
