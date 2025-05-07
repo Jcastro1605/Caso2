@@ -2336,6 +2336,10 @@ USE Soltura;
 GO
 
 -- Tipo de Tabla para las condiciones del contrato
+DROP PROCEDURE IF EXISTS [dbo].[SP_UpdateProviderContract];
+DROP TYPE IF EXISTS [dbo].[ContractConditionsTableType];
+
+
 CREATE TYPE [dbo].[ContractConditionsTableType] AS TABLE
 (
     [itemId] INT,
@@ -2346,8 +2350,8 @@ GO
 -- Procedimiento Almacenado para actualizar/insertar contratos de proveedor
 CREATE PROCEDURE [dbo].[SP_UpdateProviderContract]
 (
-    @providerId INT,
-    @providerName VARCHAR(200),
+    @partnerId INT,
+    @partnerName VARCHAR(200),
     @contractConditions [dbo].[ContractConditionsTableType] READONLY
 )
 AS
@@ -2356,32 +2360,32 @@ BEGIN
     BEGIN TRANSACTION;
 
     -- Declarar variable para el ID del proveedor
-    DECLARE @existingProviderId INT;
+    DECLARE @existingPartnerId INT;
 
     -- Verificar si el proveedor existe
-    SELECT @existingProviderId = providerid
-    FROM Solt_Providers
-    WHERE providerid = @providerId;
+    SELECT @existingPartnerId = partnerid
+    FROM Solt_Partners
+    WHERE partnerid = @partnerId;
 
     -- Si el proveedor no existe, insertarlo
-    IF @existingProviderId IS NULL
+    IF @existingPartnerId IS NULL
     BEGIN
-        INSERT INTO Solt_Providers (name)
-        VALUES (@providerName);
-        SET @providerId = SCOPE_IDENTITY(); -- Obtener el nuevo ID del proveedor
+        INSERT INTO Solt_Partners (name, startDate, enabled, partnerAdressid)  -- Agregado startDate y enabled
+        VALUES (@partnerName, GETDATE(), 1, 1);  -- Agregado valores por defecto
+        SET @partnerId = SCOPE_IDENTITY(); -- Obtener el nuevo ID del proveedor
     END
 
     -- Actualizar o insertar condiciones del contrato
-    MERGE INTO Solt_ProviderContracts AS target
+    MERGE INTO Solt_PartnerDeals AS target
     USING @contractConditions AS source
-        ON target.providerid = @providerId AND target.itemid = source.itemId
+        ON target.partnerid = @partnerId AND target.dealTypeid = source.itemId  -- Usando dealTypeid como itemId
     WHEN MATCHED THEN
-        UPDATE SET target.condition = source.condition
+        UPDATE SET target.dealDescription = source.condition  -- Actualizando dealDescription
     WHEN NOT MATCHED THEN
-        INSERT (providerid, itemid, condition)
-        VALUES (@providerId, source.itemId, source.condition)
-    WHEN NOT MATCHED BY SOURCE THEN
-        DELETE;
+        INSERT (partnerid, sealDate, enabled, dealDescription, dealTypeid)  -- Campos requeridos para la inserción
+        VALUES (@partnerId, GETDATE(), 1, source.condition, source.itemId); -- Agregado valores por defecto
+    --WHEN NOT MATCHED BY SOURCE THEN  -- Removido para evitar borrado inesperado
+    --    DELETE;
 
     COMMIT TRANSACTION;
 END;
@@ -2402,12 +2406,13 @@ EXEC [dbo].[SP_UpdateProviderContract] 1, 'Proveedor Existente', @ContractCondit
 -- Ejecutar el procedimiento almacenado para un nuevo proveedor
 EXEC [dbo].[SP_UpdateProviderContract] 2, 'Nuevo Proveedor', @ContractConditions;
 
-SELECT * FROM Solt_Providers;
-SELECT * FROM Solt_ProviderContracts;
+SELECT * FROM Solt_Partners;
+SELECT * FROM Solt_PartnerDeals;
 
 DROP PROCEDURE [dbo].[SP_UpdateProviderContract];
 DROP TYPE [dbo].[ContractConditionsTableType];
 GO
+
 ```
 
 ## Crear un SELECT que genere un archivo CSV de datos basado en un JOIN entre dos tablas
@@ -2419,8 +2424,7 @@ GO
 -- Generar archivo CSV (simulado)
 SELECT
     u.userid AS UserId,
-    u.firstName AS FirstName,
-    u.lastName AS LastName,
+    u.username as Username,
     a.line1 AS AddressLine1,
     a.line2 AS AddressLine2,
     a.zipcode AS ZipCode
