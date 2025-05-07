@@ -182,6 +182,54 @@ Se mostrará un ejemplo de un documento como "plantilla" y se especificará cuan
   ]
 }
 ```
+## Cursor local, mostrando que no es visible fuera de la sesión de la base de datos
+```sql
+USE Soltura;
+GO
+
+-- Demostracion de cursor local
+DECLARE @userid INT, @username VARCHAR(30);
+
+DECLARE userCursorLocal CURSOR LOCAL
+FOR 
+    SELECT userid, username 
+    FROM dbo.Solt_Users 
+    WHERE enabled = 1
+    ORDER BY username;
+
+OPEN userCursorLocal;
+
+FETCH NEXT FROM userCursorLocal INTO @userid, @username;
+
+PRINT 'Usuarios habilitados (Cursor Local):';
+PRINT '----------------------------------';
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT 'ID: ' + CAST(@userid AS VARCHAR) + ' - Username: ' + @username;
+    FETCH NEXT FROM userCursorLocal INTO @userid, @username;
+END
+```
+Se puede comprobar fuera de la sesión:
+```sql
+USE Soltura;
+GO
+OPEN userCursorLocal;
+
+DECLARE @userid INT, @username VARCHAR(30);
+
+FETCH NEXT FROM userCursorLocal INTO @userid, @username;
+
+PRINT 'Usuarios habilitados (Cursor Local):';
+PRINT '----------------------------------';
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT 'ID: ' + CAST(@userid AS VARCHAR) + ' - Username: ' + @username;
+    FETCH NEXT FROM userCursorLocal INTO @userid, @username;
+END
+```
+
 # Mantenimiento de la Seguridad  
 Primero crearemos los inicios de sesión para los usuarios.  
 ![image](https://github.com/user-attachments/assets/1a046298-217c-4e09-9fba-9d02a5506e04)  
