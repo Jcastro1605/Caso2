@@ -1096,6 +1096,7 @@ BEGIN TRY
 	SET IDENTITY_INSERT dbo.Solt_DealMedia OFF;
 
 	-- Solt_Log
+	ALTER TABLE Solt_Log ALTER COLUMN checksum VARBINARY(MAX);
 	DECLARE @LogData TABLE
 	(
 	  logid INT,
@@ -1113,10 +1114,27 @@ BEGIN TRY
 	  logsourceid TINYINT,
 	  logseverityid TINYINT
 	);
+	-- Abrir la llave simétrica usando el certificado
+	OPEN SYMMETRIC KEY DataEncryption
+	DECRYPTION BY CERTIFICATE CertGeneral;
 	INSERT INTO @LogData VALUES
-	  (1, N'Login correcto', GETDATE(), N'SRV-API-01', N'user1', NULL, 1, 0, N'192.168.0.10', NULL, HASHBYTES('SHA2_256',N'log1'), 1, 1, 1),
-	  (2, N'Pago aprobado', GETDATE(), N'WEB-01', N'user2', NULL, 1, 1, N'59.90', N'USD', HASHBYTES('SHA2_256',N'log2'), 2, 2, 1),
-	  (3, N'Sync partner #3 falló', GETDATE(), N'SCH-01', N'system', 'Timeout consultando API', 3, 0, N'HTTP 504', NULL, HASHBYTES('SHA2_256',N'log3'), 4, 4, 3);
+	  (1, N'Login correcto', GETDATE(), N'SRV-API-01', N'user1', NULL, 1, 0, N'192.168.0.10', NULL, 
+	   EncryptByKey(Key_GUID('DataEncryption'), 'USR:' + N'user2' + '|AMT:' + N'59.90' + '|CUR:' + N'USD' + 
+	    '|DATE:' + CONVERT(NVARCHAR(23), GETDATE(), 121) + '|RAND:' + 
+	    CONVERT(NVARCHAR(36), NEWID()) + '|EVT:Pago'), 1, 1, 1),
+	  
+	  (2, N'Pago aprobado', GETDATE(), N'WEB-01', N'user2', NULL, 1, 1, N'59.90', N'USD', 
+	   EncryptByKey(Key_GUID('DataEncryption'), 'USR:system|ERR:Timeout|CODE:HTTP 504|DATE:' + 
+	    CONVERT(NVARCHAR(23), GETDATE(), 121) + '|RAND:' + 
+	    CONVERT(NVARCHAR(36), NEWID()) + '|EVT:SyncFail'), 2, 2, 1),
+	  
+	  (3, N'Sync partner #3 falló', GETDATE(), N'SCH-01', N'system', 'Timeout consultando API', 3, 0, N'HTTP 504', NULL, 
+	   EncryptByKey(Key_GUID('DataEncryption'), 'USR:system|ERR:Timeout|CODE:HTTP 504|DATE:' + 
+	    CONVERT(NVARCHAR(23), GETDATE(), 121) + '|RAND:' + 
+	    CONVERT(NVARCHAR(36), NEWID()) + '|EVT:SyncFail'), 4, 4, 3);
+
+	-- Cerrar la llave simétrica después de usarla
+	CLOSE SYMMETRIC KEY DataEncryption;
 
 	SET IDENTITY_INSERT dbo.Solt_Log ON;
 	INSERT INTO dbo.Solt_Log
