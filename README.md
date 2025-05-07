@@ -1545,9 +1545,89 @@ BEGIN
     FETCH NEXT FROM userCursorLocal INTO @userid, @username;
 END
 ```
+## Uso de MERGE para sincronizar datos de planes
+```sql
+DECLARE @StagingPlans TABLE
+(
+  Name NVARCHAR(50) PRIMARY KEY,
+  Description NVARCHAR(200)
+);
+
+INSERT INTO @StagingPlans (Name, Description) VALUES
+  (N'Profesional Joven', N'Paquete actualizado para profesionales jóvenes'),
+  (N'Full Modern Family', N'Paquete familiar con más beneficios'),
+  (N'Nómada Digital', N'Paquete flexible para viajeros frecuentes'),
+  (N'Plan VIP', N'Nuevo plan VIP con acceso ilimitado');
+
+MERGE dbo.Solt_Subscriptions AS target
+USING @StagingPlans AS src
+  ON target.Name = src.Name
+
+WHEN MATCHED THEN
+  UPDATE SET
+    target.Description = src.Description
+
+WHEN NOT MATCHED BY TARGET THEN
+  INSERT (description, logoURL, temporary, tempPeriodStart, tempPeriodEnd, name, isCustom)
+  VALUES (src.Description, NULL, 0, NULL, NULL, src.Name, 0)
+
+WHEN NOT MATCHED BY SOURCE THEN
+  DELETE;
+SELECT subscriptionId, name, description
+FROM dbo.Solt_Subscriptions
+ORDER BY name;
+```
+
+## Uso de LTRIM para limpiar strings.
+```sql
+CREATE OR ALTER PROCEDURE dbo.CleanAddress
+  @Line1 NVARCHAR(200),
+  @Line2 NVARCHAR(200) = NULL
+AS
+BEGIN
+  SET NOCOUNT ON;
+  SELECT
+    @Line1 AS OriginalLine1,
+    LTRIM(@Line1) AS CleanLine1,
+    ISNULL(@Line2, '<NULL>') AS OriginalLine2,
+    CASE 
+      WHEN @Line2 IS NULL THEN '<NULL>' 
+      ELSE LTRIM(@Line2) 
+    END AS CleanLine2;
+END;
+GO
+
+EXEC dbo.CleanAddress
+  @Line1 = '   Residencial Vista Verde #12',
+  @Line2 = '  Apt. 5B';
+EXEC dbo.CleanAddress
+  @Line1 = '123 Main St',
+  @Line2 = NULL;
+EXEC dbo.CleanAddress
+  @Line1 = '   Calle Luján Calle 3 Ave 2',
+  @Line2 = '   Primer Piso';
+GO
+```
+
+## Uso de AVG con agrupamiento.
+```sql
+-- Promedio de montos de transacciones por usuario
+SELECT
+  t.userId,
+  u.username AS Usuario,
+  COUNT(*) AS TotalTransacciones,
+  AVG(t.amount) AS PromedioMonto
+FROM dbo.Solt_Transactions AS t
+JOIN dbo.Solt_Users AS u
+  ON u.userId = t.userId
+GROUP BY
+  t.userId,
+  u.username
+ORDER BY
+  PromedioMonto DESC;
+``` 
 
 ## UNION entre planes individuales y empresariales por ejemplo.
-
 ```sql
 USE Soltura;
 GO
