@@ -1,6 +1,12 @@
 # Caso2
 Entregable para el caso 2 del curso de Bases de Datos I
 
+# Proceda entonces en conjunto con sus colegas consultores de empresa a realizar el diseño de ambas bases de datos.
+
+## Base de datos de MongoDB (para la página web de Soltura)
+Las presentaciones de la base de datos se mostraran en MongoDB Compass para mejor presentación y legibilidad.  
+### Collections de la Base de Datos
+![image](https://github.com/user-attachments/assets/9707914b-9417-494e-97da-63cf7243fc0a)
 
 # Mantenimiento de la Seguridad  
 Primero crearemos los inicios de sesión para los usuarios.  
