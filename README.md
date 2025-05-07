@@ -2104,7 +2104,8 @@ EXEC CambiarPrecioSuscripcion @suscriptionName = 'Full Modern Family', @newPrice
 ### Transacción de volumen
 Se considera que la transacción de volumen en la plataforma de Soltura es el Canjeo. Al ser una aplicación centrada en los beneficios que brindan distintos proveedores, los canjes son la actividad principal de todo usuario. Estos pueden darse varias veces al día. Por este motivo, es vital medir su nivel de eficiencia. Esta transacción es un pilar central en el sistema de Soltura.
 #### Calcular TPS
-Para calcular el número de transacciones que se pueden realizar por segundo, es necesario hacer uso de herramientas externas. En este caso, la herramienta SQLQueryStress resulta conveniente para abrir una serie de threads y ejecutar la transacción de canjeo un número determinado de veces. 
+Para calcular el número de transacciones que se pueden realizar por segundo, es necesario hacer uso de herramientas externas. En este caso, la herramienta SQLQueryStress resulta conveniente para abrir una serie de threads y ejecutar la transacción de canjeo un número determinado de veces.   
+
 ![image](https://github.com/user-attachments/assets/03c12876-a0b0-4ad1-a864-7953afeeddfd)
 SQLQueryStress muestra varias estadísticas. Entre ellas la cantidad de segundos que tarda un proceso en terminarse a nivel de cliente. Se trabajará con una saturación máxima en el CPU de un 70%. Calcular las transacciones por segundo de canjes en esta aplicación es vital para entender el nivel de eficiencia que maneja Soltura.
 #### Triplicar el valor
