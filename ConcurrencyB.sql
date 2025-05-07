@@ -134,16 +134,16 @@ BEGIN
 		SELECT @userGroupid = userGroupid
         FROM Solt_UserPerGroup
         WHERE userid = @userid;
-
         IF @userGroupid IS NULL
-            THROW 50005, 'El grupo no existe', 2;
+           THROW 50005, 'El grupo no existe', 2;
 
 		-- Se actualiza la fecha de salida a la actual
 		UPDATE Solt_UserPerGroup
         SET exitDate = GETDATE(), enabled = 0
         WHERE userid = @userid; -- AND userGroupid = @userGroupid;
 		
-        WAITFOR DELAY '00:00:05'; -- Simulacion de concurrencia
+        WAITFOR DELAY '00:00:07'; -- Simulación de concurrencia
+
 		-- Se actualizan los datos de modificacion
 		UPDATE Solt_UserGroups
         SET modificationDesc = 'Salida del usuario ' + @username, modification = GETDATE()
@@ -169,4 +169,4 @@ BEGIN
 END
 GO
 
-EXEC MarcarSalidaGrupo @username = 'Juan';
+EXEC MarcarSalidaGrupo @username = 'djiménez';
