@@ -1,10 +1,10 @@
 # Caso 2
-Entregable para el caso 2 del curso de Bases de Datos I
-Integrantes:
-Julián Castro Barrantes - 2024119346
-Lindsay Marín Sánchez - 2024163904
-Elías Ramírez Hernández - 2024090300
-Andrés Rodríguez Brizuela - 2024256537
+Entregable para el caso 2 del curso de Bases de Datos I  
+# Integrantes:  
+Julián Castro Barrantes - 2024119346  
+Lindsay Marín Sánchez - 2024163904  
+Elías Ramírez Hernández - 2024090300  
+Andrés Rodríguez Brizuela - 2024256537  
 
 # Proceda entonces en conjunto con sus colegas consultores de empresa a realizar el diseño de ambas bases de datos.
 ## Base de datos en SQLServer
