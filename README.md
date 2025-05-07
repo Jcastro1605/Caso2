@@ -2691,7 +2691,6 @@ END
 RETURN 0
 GO
 ```
--- FALTA AJUSTAR con los inserts
 ## Escribir un SELECT que use CASE para crear una columna calculada que agrupe dinámicamente datos (por ejemplo, agrupar cantidades de usuarios por plan en rangos de monto, no use este ejemplo).  
 ```sql
 USE Soltura;
