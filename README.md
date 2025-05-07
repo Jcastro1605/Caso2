@@ -7,7 +7,181 @@ Entregable para el caso 2 del curso de Bases de Datos I
 Las presentaciones de la base de datos se mostraran en MongoDB Compass para mejor presentación y legibilidad.  
 ### Collections de la Base de Datos
 ![image](https://github.com/user-attachments/assets/9707914b-9417-494e-97da-63cf7243fc0a)
-
+### Documentos para los collections  
+Se mostrará un ejemplo de un documento como "plantilla" y se especificará cuando algún documento puede salirse la plantilla.
+#### Collection: Solt_Complaints
+```json
+{
+  "_id": {
+    "$oid": "681669762838f8177dd1e9b7"
+  },
+  "complaintid": 1,
+  "language": "es-ES",
+  "user": {
+    "userId": "554",
+    "username": "JPablo",
+    "plan": "custom",
+    "customerSince": "2024-12-10"
+  },
+  "submissionDate": "2025-01-15T14:30:00Z",
+  "type": "Facturación",
+  "verified": false,
+  "title": "Cobro recurrente no aplicado",
+  "description": "Ya he tenido problemas en varias ocasiones con el sistema de cobros recurrentes, pues no se está aplicando y me quitan la subscripción. Es muy molesto.",
+  "evidence": [
+    {
+      "type": "screenshot",
+      "url": "https://cloud.soltura.com/quejas/screenshot-baja.jpg",
+      "description": "Comprobante de solicitud de baja"
+    }
+  ],
+  "response": "Lamentamos mucho los inconvenientes que has tenido con Soltura, te sugerimos informar tu problema con Soporte para que puedas recibir atención del caso"
+}
+```
+#### Collection: Solt_FAQ
+```json
+{
+  "_id": {
+    "$oid": "68163f8c2838f8177dd1e966"
+  },
+  "faqId": 2,
+  "question": "¿Soltura tiene soporte para Android?",
+  "answer": "Sí, nuestra app es compatible con Android 10 o superior.",
+  "category": "Tecnología",
+  "tags": [
+    "android",
+    "app"
+  ],
+  "language": "es-ES"
+}
+```
+#### Collections: Solt_FAQCategories
+```json
+{
+  "_id": {
+    "$oid": "68169eee2838f8177dd1ea16"
+  },
+  "name": "Tecnología"
+}
+```
+#### Collections: Solt_FeatureCategory
+-- FALTA  
+#### Collections: Solt_Features
+-- FALTA  
+#### Collections: Solt_HomeBanners
+```json
+{
+  "_id": {
+    "$oid": "68166d192838f8177dd1e9c2"
+  },
+  "bannerid": 1,
+  "title": "Nuevo Plan en Soltura",
+  "isFeatured": true,
+  "image": "https://cloud.soltura.com/bannerImgs/b1.png",
+  "link": "/solturaPlans.html",
+  "linkText": "Conoce más detalles aquí",
+  "uploadDate": "2025-04-25T09:15:00Z"
+}
+```
+#### Collections: Solt_News 
+```json
+{
+  "_id": {
+    "$oid": "68156fe2ddf41ed3002dcd95"
+  },
+  "newsid": 1,
+  "mainTitle": "Soltura implementa nuevo método de canje para usuarios de Apple",
+  "abstract": "A partir del 12 de octubre, todos los usuarios de Soltura que cuenten con un celular IOS podrán vincular sus códigos de canje a sus Apple Wallet y hacer uso de los beneficios desde su celular",
+  "postDate": "2025-07-31T23:59:59Z",
+  "image": "https://imgURL.com",
+  "subHeadlines": [
+    {
+      "outerTitle": "Utilización del Servicio",
+      "relevantDetails": [
+        {
+          "innerTitle": "Configuración del servicio",
+          "messageText": "Para configurar el servicio se debe abrir la aplicación móvil de Soltura y acceder a AJUSTES > MI CUENTA > MI CÓDIGO DE CANJE > AÑADIR A WALLET. Si tiene problemas en este proceso diríjase a la sección de Soporte."
+        },
+        {
+          "innerTitle": "Utilización del servicio",
+          "messageText": "Una vez completado la configuración puede abrir la apliación Apple Wallet y utilizar su teléfono para canjear el servicio."
+        }
+      ]
+    }
+  ],
+  "language": "es-ES"
+}
+```
+#### Collections: Solt_Packages
+-- FALTA  
+#### Collections: Solt_Partners
+```json
+{
+  "_id": {
+    "$oid": "681677582838f8177dd1e9d6"
+  },
+  "partnerCardid": 1,
+  "name": "SmartFit",
+  "logo": "https://cloud.soltura.com/partnerBanners/b1.png",
+  "bannerImg": "https://cloud.soltura.com/partnerLogos/l1.png",
+  "description": "Somos una cadena de gimnasios de origen brasileño, considerada la más grande fuera de los Estados Unidos, líder en el segmento en América Latina y la 4° más grande del mundo.",
+  "benefits": [
+    "Horas de gimnasio gratuitas",
+    "Descuento en actividades seleccionadas"
+  ],
+  "contactInfo": [
+    {
+      "type": "Phone",
+      "value": "8888-8888"
+    },
+    {
+      "type": "Phone",
+      "value": "7777-7777"
+    },
+    {
+      "type": "website",
+      "value": "https://www.smartfit.cr/"
+    }
+  ]
+}
+```
+#### Collections: Solt_Reviews
+```json
+{
+  "_id": {
+    "$oid": "68156682ddf41ed3002dcd8b"
+  },
+  "reviewid": 1,
+  "user": {
+    "userid": 12,
+    "username": "PGarcia",
+    "userPicture": "https://hostingpicture.png/",
+    "verified": true
+  },
+  "plan": "Custom",
+  "rating": 4.5,
+  "serviceProvider": "SmartFit Gym",
+  "featureName": "SmartFit Discount",
+  "commentTitle": "Buen Servicio SmartFit",
+  "comment": "Excelente servicio, el gimnasio y el plan móvil han sido de gran ayuda. Solo me gustaría más opciones en los horarios seleccionado.",
+  "datetime": "2025-03-31 14:00:00",
+  "language": "ES-es",
+  "replies": [
+    {
+      "replyid": 1,
+      "replyUser": {
+        "userid": 13,
+        "username": "BCoto",
+        "userPicture": "https://hostingpicture.png/",
+        "verified": true
+      },
+      "language": "ES-es",
+      "commentComment:": "Concuerdo con tu experiencia, tuve algo similar",
+      "replyDatetime": "2025-03-31 14:30:00"
+    }
+  ]
+}
+```
 # Mantenimiento de la Seguridad  
 Primero crearemos los inicios de sesión para los usuarios.  
 ![image](https://github.com/user-attachments/assets/1a046298-217c-4e09-9fba-9d02a5506e04)  
