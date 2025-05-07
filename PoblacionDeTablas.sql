@@ -271,7 +271,7 @@ BEGIN TRY
 	(
 	  SELECT f.fname, l.lname
 	  FROM @FirstNames AS f
-	  CROSS JOIN @LastNames AS l
+	  CROSS JOIN @LastNames  AS l
 	),
 	Top30 AS
 	(
@@ -288,29 +288,37 @@ BEGIN TRY
 
     -- Solt_Users
 	SET IDENTITY_INSERT dbo.Solt_Users ON;
-
 	INSERT dbo.Solt_Users(userid,username,[password],enabled)
-	SELECT userid,
-		   LOWER(LEFT(fname,1)+lname),
-		   HASHBYTES('SHA2_256', CONCAT('P@ss',userid,'w0rd')),
-		   CASE WHEN userid<=25 THEN 1 ELSE 0 END
-	FROM   @UsersData;
-
+	SELECT
+	  d.userid,
+	  LOWER(
+	    LEFT(d.fname,1)
+	    + d.lname
+	    + CAST(ABS(CHECKSUM(NEWID())) % 1000 + 1 AS varchar(4))
+	  ) AS username,
+	  HASHBYTES('SHA2_256', CONCAT('P@ss',d.userid,'w0rd')) AS [password],
+	  CASE WHEN d.userid <= 25 THEN 1 ELSE 0 END
+	FROM @UsersData AS d;
 	SET IDENTITY_INSERT dbo.Solt_Users OFF;
 
 	-- Solt_UserPersons
 	SET IDENTITY_INSERT dbo.Solt_UserPersons ON;
-
 	INSERT dbo.Solt_UserPersons
 		  (userPersonid, userid,
 		   name, firstLastname, secondLastname, birthdate)
-	SELECT d.userid, d.userid,
-		   d.fname,
-		   d.lname,
-		   CASE WHEN d.userid%4 = 0 THEN 'Jiménez' ELSE NULL END,
-		   DATEADD(day,-(18+ABS(CHECKSUM(NEWID()))%9000),'2005-01-01')
-	FROM   @UsersData AS d;
-
+	SELECT
+	  d.userid,
+	  d.userid,
+	  d.fname,
+	  d.lname,
+	  (
+	    SELECT TOP 1 ln.lname
+	    FROM   @LastNames AS ln
+	    WHERE  ln.lname <> d.lname
+	    ORDER  BY NEWID()
+	  ) AS secondLastname,
+	  DATEADD(day, -(18 + ABS(CHECKSUM(NEWID())) % 9000), '2005-01-01')
+	FROM @UsersData AS d;
 	SET IDENTITY_INSERT dbo.Solt_UserPersons OFF;
 
 	-- Solt_ContactInfoPerson
