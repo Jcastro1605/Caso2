@@ -1799,7 +1799,6 @@ SELECT *
 GO
 ```
 
--- FALTA RLS
 ## Certificado de llave asimétrico y simétrico  
 ```sql
 USE Soltura
