@@ -291,6 +291,60 @@ Se mostrará un ejemplo de un documento como "plantilla" y se especificará cuan
   ]
 }
 ```
+#### Collection: Solt_SupportCaseCategory
+```json
+{
+  "_id": {
+    "$oid": "68169e052838f8177dd1ea06"
+  },
+  "name": "Transacciones"
+}
+```
+#### Collections: Solt_SupportCases
+```json
+{
+  "_id": {
+    "$oid": "68165cf42838f8177dd1e99d"
+  },
+  "caseid": 1,
+  "user": {
+    "userid": 244,
+    "username": "JPablo"
+  },
+  "submissionDate": "2025-02-10T14:30:00Z",
+  "type": "Facturación",
+  "subject": "Cargo duplicado para factura de Enero",
+  "description": "El mes anterior se me cobró doble un servicio de Yoga",
+  "status": "Resolved",
+  "priority": "alta",
+  "attachments": [
+    {
+      "name": "Factura_Adjunta",
+      "type": "Invoice",
+      "url": "https://cloud.soltura.com/attachments/invoice-123.jpg"
+    }
+  ],
+  "resolutions": [
+    {
+      "action": "refund",
+      "transactionNumber": 10390,
+      "isResolved": true,
+      "resolutionDate": "2025-02-12T14:30:00Z",
+      "response": "Muchas gracias por contactar al soporte de Soltura, luego de revisar tu caso logramos encontrar el cobro doble y se hizo la devolución del dinero correspondiente a su monedero de Soltura"
+    }
+  ],
+  "metadata": {
+    "assignedTo": [
+      {
+        "user": "kgomez@soltura.com",
+        "assignationDate": "2025-02-12T14:30:00Z",
+        "resolutionHours": 2
+      }
+    ]
+  }
+}
+```
+# Demostraciones T-SQL
 ## Cursor local, mostrando que no es visible fuera de la sesión de la base de datos
 ```sql
 USE Soltura;
