@@ -32,6 +32,12 @@ BEGIN
 	IF @userid IS NULL
 		THROW 50001, 'El usuario no existe', 1  -- Envia un codigo y mensaje de error custom
 
+	SELECT @userGroupid = userGroupid
+    FROM Solt_UserPerGroup
+    WHERE userid = @userid;
+    IF @userGroupid IS NULL
+        THROW 50006, 'El usuario no esta en un grupo', 2;
+
     SET @InicieTransaccion = 0
     IF @@TRANCOUNT = 0 BEGIN
         SET @InicieTransaccion = 1
@@ -42,24 +48,24 @@ BEGIN
     BEGIN TRY
         SET @CustomError = 3005
 
-		-- Se obtiene el id del grupo
-		SELECT @userGroupid = userGroupid
-        FROM Solt_UserPerGroup
-        WHERE userid = @userid;
-        IF @userGroupid IS NULL
-            THROW 50006, 'El usuario no est· en un grupo', 2;
-	
-		-- Se obtiene el id del duenno del grupo
-		SELECT @userid = groupOwner
-		FROM Solt_UserGroups
-		WHERE userGroupid = @userGroupid;
+		UPDATE Solt_UserGroups
+         SET modificationDesc = modificationDesc + ' '
+         WHERE userGroupid = @userGroupid;
 
-        WAITFOR DELAY '00:00:05'; -- SimulaciÛn de concurrencia
+         WAITFOR DELAY '00:00:06'; -- Simula concurrencia
 
-        -- Se actualiza el username del duenno del grupo para indicar su status.
-        UPDATE Solt_Users
-        SET username = username+'(Owner)' 
-		WHERE userid = @userid;
+         -- Paso 2: Actualiza Solt_Users (actualiza el username del due√±o)
+         UPDATE Solt_Users
+         SET username = CASE 
+                           WHEN username NOT LIKE '%(Owner)%' 
+                           THEN username + '(Owner)' 
+                           ELSE username 
+                        END
+         WHERE userid = (
+             SELECT groupOwner 
+             FROM Solt_UserGroups 
+             WHERE userGroupid = @userGroupid
+         );
 
         IF @InicieTransaccion = 1 BEGIN
             COMMIT
@@ -82,6 +88,10 @@ END
 RETURN 0
 GO
 
-EXEC AsignarUsernameDuennoGrupo @username = 'ElenaSilR45';
+UPDATE Solt_Users
+SET username = 'djim√©nez'
+WHERE userid = 1;
 
-SELECT * FROM Solt_Users;
+EXEC AsignarUsernameDuennoGrupo @username = 'djim√©nez';
+
+ SELECT * FROM Solt_Users;
