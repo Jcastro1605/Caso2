@@ -115,12 +115,12 @@ BEGIN
         SET enabled = 1
         WHERE userid = @userid;
 	
-        WAITFOR DELAY '00:00:05'; -- Simulación de concurrencia
+        WAITFOR DELAY '00:00:07'; -- Simulación de concurrencia
         
         -- Se actualiza el estado del usuario dentro del grupo
         UPDATE Solt_UserPerGroup
         SET enabled = @enabled
-		WHERE userid = @userid;
+        WHERE userid = @userid;
 
         IF @InicieTransaccion = 1 BEGIN
             COMMIT
@@ -143,4 +143,4 @@ END
 RETURN 0
 GO
 
-EXEC ActualizarUsuarioEnGrupo @username = 'Juan', @enabled = 1;
+EXEC ActualizarUsuarioEnGrupo @username = 'djiménez', @enabled = 1;
