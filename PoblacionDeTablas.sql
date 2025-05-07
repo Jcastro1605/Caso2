@@ -634,170 +634,105 @@ BEGIN TRY
 /* Bloque 4: Proovedores, acuerdos y relaciones */
 	
 	-- Solt_Modules
-	DECLARE @ModulesData TABLE (moduleId INT, name NVARCHAR(50));
-	INSERT INTO @ModulesData (moduleId, name) VALUES
-	  (1, N'Cobro Suscripción'),
-	  (2, N'Procesador Pagos'),
-	  (3, N'Reintento Automático');
-
-	INSERT INTO dbo.Solt_Modules (moduleId, name)
-	SELECT moduleId, name
-	FROM @ModulesData;
+	INSERT INTO dbo.Solt_Modules(moduleId,name) VALUES
+	 (1,N'Cobro Suscripción'),
+	 (2,N'Procesador Pagos'),
+	 (3,N'Reintento Automático');
 
 	-- Solt_Partners
-	DECLARE @PartnersData TABLE
-	(
-	  name NVARCHAR(100),
-	  startDate DATE,
-	  endDate DATE,
-	  enabled BIT,
-	  partnerAdressid INT
-	);
-	INSERT INTO @PartnersData VALUES
-	 (N'SmartFit Costa Rica','2024-01-01',NULL, 1, 1),
-	 (N'WashIt Laundry','2024-02-15',NULL, 1, 2),
-	 (N'EcoFuel Stations','2023-11-01',NULL, 1, 3),
-	 (N'Kolbi Telecom','2022-05-10',NULL, 1, 4),
-	 (N'PetGroom CR','2024-03-20',NULL, 1, 5),
-	 (N'Healthy Meals Co.','2024-01-25',NULL, 1, 6),
-	 (N'Urban Parking','2023-09-30',NULL, 1, 7);
+	DECLARE @Partners TABLE(name NVARCHAR(100), adressId INT);
+	INSERT INTO @Partners VALUES
+	 (N'SmartFit Costa Rica',1),
+	 (N'WashIt Laundry',2),
+	 (N'EcoFuel Stations',3),
+	 (N'Kolbi Telecom',4),
+	 (N'PetGroom CR',5),
+	 (N'Healthy Meals Co.',6),
+	 (N'Urban Parking',7);
 
-	DECLARE @InsertedPartners TABLE(partnerid INT, name NVARCHAR(100));
-	INSERT INTO dbo.Solt_Partners (name, startDate, endDate, enabled, partnerAdressid)
-	OUTPUT inserted.partnerid, inserted.name INTO @InsertedPartners
-	SELECT name, startDate, endDate, enabled, partnerAdressid
-	FROM @PartnersData;
+	INSERT INTO dbo.Solt_Partners(name,startDate,endDate,enabled,partnerAdressId)
+	SELECT name,'2024-01-01',NULL,1,adressId
+	FROM   @Partners;
 
-
-	-- Solt_PartnerDeals
-	DECLARE @PartnerDealsData TABLE
-	(
-	  partnerName NVARCHAR(100),
-	  sealDate DATE,
-	  expirationDate DATE,
-	  enabled BIT,
-	  dealDescription NVARCHAR(200),
-	  dealTypeName NVARCHAR(100)
-	);
-	INSERT INTO @PartnerDealsData VALUES
-	 (N'SmartFit Costa Rica','2025-01-15',NULL,1,N'10 % de descuento en membresías',     N'Descuento %'),
-	 (N'WashIt Laundry','2025-01-20',NULL,1,N'20 % de descuento en lavandería',      N'Descuento %'),
-	 (N'EcoFuel Stations','2025-01-05',NULL,1,N'3 % de cashback en combustible',      N'Cashback'),
-	 (N'Kolbi Telecom','2025-01-10',NULL,1,N'Plan móvil ilimitado a precio preferencial', N'Descuento %'),
-	 (N'PetGroom CR','2025-01-18',NULL,1,N'Primer grooming gratis al mes',       N'Producto Gratis'),
-	 (N'Healthy Meals Co.','2025-01-22',NULL,1,N'15 % de descuento en menús saludables', N'Descuento %'),
-	 (N'Urban Parking','2025-01-08',NULL,1,N'5 % de cashback en estacionamientos',  N'Cashback');
-
-	DECLARE @InsertedPartnerDeals TABLE(partnerDealid INT, partnerid INT);
-	INSERT INTO dbo.Solt_PartnerDeals (partnerid, sealDate, expirationDate, enabled, dealDescription, dealTypeid)
-	OUTPUT inserted.partnerDealid, inserted.partnerid INTO @InsertedPartnerDeals
-	SELECT
-	  ip.partnerid, pd.sealDate, pd.expirationDate,
-	  pd.enabled, pd.dealDescription, dt.dealTypeid
-	FROM @PartnerDealsData AS pd
-	JOIN @InsertedPartners AS ip
-	ON ip.name = pd.partnerName
-	JOIN dbo.Solt_DealType AS dt
-	ON dt.name = pd.dealTypeName;
+	-- Solt_PartnersDeals
+	INSERT INTO dbo.Solt_PartnerDeals
+			(partnerId,sealDate,expirationDate,enabled,dealDescription,dealTypeId)
+	SELECT p.partnerId,
+		   '2025-01-01',NULL,1,
+		   CASE p.name
+			 WHEN N'SmartFit Costa Rica' THEN N'10 % de descuento en membresías'
+			 WHEN N'WashIt Laundry' THEN N'20 % de descuento en lavandería'
+			 WHEN N'EcoFuel Stations' THEN N'3 % de cashback en combustible'
+			 WHEN N'Kolbi Telecom' THEN N'Plan móvil ilimitado a precio preferencial'
+			 WHEN N'PetGroom CR' THEN N'Primer grooming gratis al mes'
+			 WHEN N'Healthy Meals Co.' THEN N'15 % de descuento en menús saludables'
+			 WHEN N'Urban Parking' THEN N'5 % de cashback en estacionamientos'
+		   END,
+		   CASE p.name
+			 WHEN N'EcoFuel Stations' THEN 2
+			 WHEN N'Urban Parking' THEN 2
+			 WHEN N'PetGroom CR' THEN 3
+			 ELSE 1
+		   END
+	FROM dbo.Solt_Partners p;
 
 	-- Solt_FeaturePerDeal
-	DECLARE @FeatureDealData TABLE
-	(
-	  partnerDealid INT,
-	  featName NVARCHAR(40),
-	  solturaShare DECIMAL(5,2),
-	  partnerShare DECIMAL(5,2),
-	  totalCost DECIMAL(10,2)
-	);
-	INSERT INTO @FeatureDealData VALUES
-	 (1, N'Gimnasio', 25.00, 75.00,100.0),
-	 (2, N'Lavandería', 30.00, 70.00,100.0),
-	 (3, N'Combustible', 20.00, 80.00,100.0),
-	 (4, N'Plan Móvil', 35.00, 65.00,100.0),
-	 (5, N'Grooming Mascota', 40.00, 60.00,100.0),
-	 (6, N'Lavandería', 25.00, 75.00,100.0),
-	 (7, N'Combustible', 20.00, 80.00,100.0);
-
 	INSERT INTO dbo.Solt_FeaturePerDeal
-	  (partnerDealid, planFeatureid, solturaShare, partnerShare, totalCost)
-	SELECT
-	  fpd.partnerDealid,
-	  pf.planFeatureid,
-	  fpd.solturaShare,
-	  fpd.partnerShare,
-	  fpd.totalCost
-	FROM @FeatureDealData AS fpd
-	JOIN dbo.Solt_PlanFeatures AS pf
-	ON pf.name = fpd.featName
-	JOIN @InsertedPartnerDeals AS ipd
-	ON ipd.partnerDealid = fpd.partnerDealid;
+			(partnerDealId,planFeatureId,solturaShare,partnerShare,totalCost)
+	SELECT pd.partnerDealId,
+		   pf.planFeatureId,
+		   x.solturaShare,
+		   x.partnerShare,
+		   100.00
+	FROM (VALUES
+		  (N'SmartFit Costa Rica', N'Gimnasio'        ,25,75),
+		  (N'WashIt Laundry'     , N'Lavandería'      ,30,70),
+		  (N'EcoFuel Stations'   , N'Combustible'     ,20,80),
+		  (N'Kolbi Telecom'      , N'Plan Móvil'      ,35,65),
+		  (N'PetGroom CR'        , N'Grooming Mascota',40,60),
+		  (N'Healthy Meals Co.'  , N'Lavandería'      ,25,75),
+		  (N'Urban Parking'      , N'Combustible'     ,20,80)
+		 ) AS x (partnerName,featName,solturaShare,partnerShare)
+	JOIN dbo.Solt_Partners     p  ON p.name       = x.partnerName
+	JOIN dbo.Solt_PartnerDeals pd ON pd.partnerId = p.partnerId
+	JOIN dbo.Solt_PlanFeatures pf ON pf.name      = x.featName;
 
-	-- Solt_ErrorTypes
-	DECLARE @PayErrors TABLE
-	(
-	  payErrorTypeId TINYINT PRIMARY KEY,
-	  name NVARCHAR(50)
-	);
+	-- Solt_PartnerPaymentMethods
+	INSERT INTO dbo.Solt_PartnerPaymentMethods
+			(partnerObligationId,availableMethodId,enabled,establishmentDate)
+	SELECT pd.partnerDealId, am.availableMethodId, 1, '2024-01-01'
+	FROM   dbo.Solt_PartnerDeals       pd
+	CROSS  JOIN (VALUES (1),(2),(3))  AS am(availableMethodId)  -- Visa, Master, PayPal
+	WHERE  pd.enabled = 1;
 
-	INSERT INTO @PayErrors (payErrorTypeId, name) VALUES
-	  (1, N'Tarjeta Rechazada'),
-	  (2, N'Fondos Insuficientes'),
-	  (3, N'Error Red'),
-	  (4, N'Token Expirado');
-
-	INSERT INTO dbo.Solt_PayErrorTypes (payErrorTypeId, name)
-	SELECT payErrorTypeId, name
-	FROM   @PayErrors;
+	-- Solt_PayErrorTypes
+	IF NOT EXISTS (SELECT 1 FROM dbo.Solt_PayErrorTypes)
+	INSERT INTO dbo.Solt_PayErrorTypes(payErrorTypeId,name) VALUES
+	 (1,N'Tarjeta Rechazada'),
+	 (2,N'Fondos Insuficientes'),
+	 (3,N'Error Red'),
+	 (4,N'Token Expirado');
 
 	-- Solt_PaymentAttempts
-	DECLARE @Attempts TABLE
-	(
-	  paymentAttemptId INT PRIMARY KEY,
-	  amount DECIMAL(10,4),
-	  currentAmount DECIMAL(10,4),
-	  userId INT,
-	  moduleId INT,
-	  chargeToken VARBINARY(128),
-	  description NVARCHAR(200),
-	  result NVARCHAR(200),
-	  statusTypeId TINYINT,
-	  creationDate DATETIME2,
-	  currencyId INT,
-	  availableMethodId INT,
-	  checksum VARBINARY(500),
-	  payErrorTypeId TINYINT
-	);
-
-	INSERT INTO @Attempts VALUES
-	 (1, 59.9000, 59.9000, 1, 2,
-		CONVERT(VARBINARY(128),'tok-u1'),
-		N'Cobro mensual abril', N'Tarjeta rechazada',
-		2, GETDATE(), 1, 1,
-		CONVERT(VARBINARY(500),'chk-pa-1'), 1),
-	 (2, 59.9000, 59.9000, 2, 2,
-		CONVERT(VARBINARY(128),'tok-u2'),
-		N'Cobro mensual abril (reintento)', N'Fondos insuficientes',
-		2, GETDATE(), 1, 2,
-		CONVERT(VARBINARY(500),'chk-pa-2'), 2),
-	 (3, 79.9000, 79.9000, 3, 3,
-		CONVERT(VARBINARY(128),'tok-u3'),
-		N'Cobro nómada digital abril', N'Error de red: timeout',
-		2, GETDATE(), 1, 3,
-		CONVERT(VARBINARY(500),'chk-pa-3'), 3);
-
 	INSERT INTO dbo.Solt_PaymentAttempts
-	 (paymentAttemptId, amount, currentAmount,
-	  userId, moduleId, chargeToken,
-	  description, result, statusTypeId,
-	  creationDate, currencyId, availableMethodId,
-	  checksum, payErrorTypeId)
-	SELECT
-	  paymentAttemptId, amount, currentAmount,
-	  userId, moduleId, chargeToken,
-	  description, result, statusTypeId,
-	  creationDate, currencyId, availableMethodId,
-	  checksum, payErrorTypeId
-	FROM @Attempts;
+			(paymentAttemptId,amount,currentAmount,userId,moduleId,chargeToken,
+			 description,result,statusTypeId,creationDate,currencyId,availableMethodId,
+			 checksum,payErrorTypeId)
+	VALUES
+	 (1,59.9000,59.9000,1,2,0x74786E31,
+	  N'Cobro Suscripción Abril',N'Aprobado',
+	  1,GETDATE(),1,1,
+	  0xAAAA,1),
+
+	 (2,139.9000,139.9000,5,2,0x74786E32,
+	  N'Compra lavado x4',N'Aprobado',
+	  1,GETDATE(),1,2,
+	  0xBBBB,1),
+
+	 (3,52500.0000,52500.0000,3,2,0x74786E33,
+	  N'Cobro combustible',N'Aprobado',
+	  1,GETDATE(),1,3,
+	  0xCCCC,1);
 
 	-- Solt_PartnerPaymentMethods
 	DECLARE @PPMData TABLE
