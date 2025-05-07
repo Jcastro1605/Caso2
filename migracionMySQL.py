@@ -12,7 +12,7 @@ configuracionMysql = {
 
 configuracionSqlServer = {
     'host': 'ELIPOLIMSI', # mi nombre de compu
-    'database': 'SolturaAssistant'  # nombre de nueva db
+    'database': 'Soltura'  # nombre de db
 }
 
 def migrarTabla(motorMysql, motorSqlServer, nombreTabla, columnaIdMysql=None, columnaIdSqlServer=None, mapeoIds=None):
