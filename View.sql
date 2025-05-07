@@ -21,6 +21,10 @@ BEGIN
 
 	DECLARE @concatString NVARCHAR(500);
 	DECLARE @checksum VARBINARY(128);
+	DECLARE @logTypeid INT;
+	SELECT @logTypeid = logTypeId
+    FROM Solt_LogTypes
+    WHERE name = 'Redeems';
 
 	SELECT 
         @userid = i.userid, 
@@ -38,11 +42,11 @@ BEGIN
                         CAST(@trace AS NVARCHAR) + 
                         CAST(@redemptionCodeid AS NVARCHAR) + 
                         CAST(@redemptionStatusid AS NVARCHAR) + 
-                        '8' + '1' + '1'; -- LogType = Redeems | LogSource = Database | LogSeverity = Exito
+                        CAST(@logTypeid as NVARCHAR) + '1' + '1'; -- LogType = Redeems | LogSource = Database | LogSeverity = Exito
 	SET @checksum = HASHBYTES('SHA2_256', @concatString)
 
 	INSERT INTO dbo.Solt_Log (description, computer, username, trace, referenceid1, value1, checksum, logtypeid, logsourceid, logseverityid)
-    VALUES (@description, @computer, @username, @trace, @redemptionCodeid, CAST(@redemptionStatusid AS VARCHAR), @checksum, 8, 1, 1);
+    VALUES (@description, @computer, @username, @trace, @redemptionCodeid, CAST(@redemptionStatusid AS VARCHAR), @checksum, @logTypeid, 1, 1);
 END;
 GO
 	
@@ -124,6 +128,8 @@ CREATE ROLE LowTierAdmins;
 CREATE USER LowTierAdminTest WITHOUT login;
 ALTER ROLE LowTierAdmins ADD MEMBER LowTierAdminTest;
 
+--GRANT EXEC TO LowTierAdmins;
+
 DROP PROCEDURE IF EXISTS CheckUsersEmail;
 GO
 CREATE PROCEDURE CheckUsersEmail
@@ -135,9 +141,10 @@ BEGIN
 END
 GO
 
--- EXECUTE AS USER = 'LowTierAdminTest';
+EXECUTE AS USER = 'LowTierAdminTest';
 EXEC CheckUsersEmail;
 
 REVERT; -- Regresa al usuario original
 DROP USER if EXISTS LowTierAdminTest;
 DROP ROLE if EXISTS LowTierAdmins;
+
